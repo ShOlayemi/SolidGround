@@ -1,0 +1,8 @@
+import { LegalPage, LegalSection } from "@/components/LegalPage";
+import type { Metadata } from "next";
+export const metadata: Metadata = {
+  title: "Cookie Policy",
+  description: "How SolidGround AI uses cookies and similar technologies.",
+};
+export const revalidate = 86400;
+export default function CookiesPage() { return <LegalPage title="Cookie Policy" eyebrow="Transparency"><p>Cookies are small files stored on your device. We use them to keep SolidGround secure and functional, and only use optional technologies where permitted and with your choices.</p><LegalSection title="Essential cookies"><p>Authentication session cookies keep you signed in and protect account actions. Security, load-balancing, and preference cookies may also be required for the service to work. These cannot be switched off in our systems.</p></LegalSection><LegalSection title="Optional analytics"><p>If enabled and accepted, analytics cookies help us understand aggregate page visits, feature use, and errors so we can improve the product. We do not use them to sell your information. Analytics providers may process technical identifiers under their own policies.</p></LegalSection><LegalSection title="Your choices"><p>You can manage cookies through your browser settings, delete existing cookies, or use our privacy choices page. Blocking essential cookies may prevent login and core features from working. We may update this policy as our providers change.</p></LegalSection><LegalSection title="More information"><p>For personal data practices, see our <a href="/privacy">Privacy Policy</a>. Questions: privacy@solidground.ai.</p></LegalSection></LegalPage>; }
