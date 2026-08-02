@@ -196,7 +196,15 @@ export async function getOrGenerateInsights(
       console.warn("AI insights cache query error:", cacheError.message);
     }
 
-    if (cachedRow) {
+    // Skip cached fallback so MockProvider can regenerate proper insights
+    const isCachedFallback = cachedRow?.blueprint_summary?.includes("temporarily unavailable");
+
+    if (isCachedFallback) {
+      // Delete stale fallback so the INSERT below doesn't conflict
+      await supabase.from("ai_insights").delete().eq("session_id", sessionId);
+    }
+
+    if (cachedRow && !isCachedFallback) {
       return {
         success: true,
         cached: true,
