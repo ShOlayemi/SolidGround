@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { Footer } from "@/components/Footer";
+
+export function LegalPage({ title, eyebrow, children, nested = false }: { title: string; eyebrow?: string; children: React.ReactNode; nested?: boolean }) {
+  return <><header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5"><Link href="/" className="text-lg font-semibold tracking-tight text-slate-900">SolidGround<span className="text-indigo-600"> AI</span></Link><Link href="/" className="text-sm text-slate-500 hover:text-slate-900">Return home</Link></div></header><main className="mx-auto max-w-3xl px-5 py-16 md:py-24"><nav aria-label="Breadcrumb" className="mb-10 text-sm text-slate-500"><Link href="/" className="hover:text-indigo-600">Home</Link>{nested && <><span className="mx-2">/</span><Link href="/privacy" className="hover:text-indigo-600">Privacy</Link></>}</nav><p className="mb-4 text-sm font-semibold uppercase tracking-widest text-indigo-600">{eyebrow ?? "Legal"}</p><h1 className="text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">{title}</h1><p className="mt-4 text-sm text-slate-500">Last updated: August 1, 2026</p><article className="prose prose-slate mt-12 max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-a:text-indigo-600">{children}</article></main><Footer /></>;
+}
+export function LegalSection({ title, children }: { title: string; children: React.ReactNode }) { return <section><h2>{title}</h2>{children}</section>; }

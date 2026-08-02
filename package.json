@@ -1,0 +1,49 @@
+{
+  "name": "solidground-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -p 3000 -H 0.0.0.0",
+    "lint": "eslint .",
+    "test": "bun test",
+    "test:watch": "vitest",
+    "publish": "bash ./publish.sh",
+    "go-live": "bash ./go-live.sh",
+    "seed-demo": "bun run scripts/seed-demo.ts",
+    "validate-env": "bun run scripts/validate-env.ts",
+    "migrate": "bun run scripts/run-migrations.ts",
+    "backup": "bash scripts/backup-db.sh"
+  },
+  "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.57.4",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.28.0",
+    "next": "^16.2.12",
+    "openai": "^7.2.0",
+    "pg": "^8.22.0",
+    "posthog-js": "^1.409.5",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "resend": "^6.18.1",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^20.19.43",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.2.12",
+    "jsdom": "^30.0.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

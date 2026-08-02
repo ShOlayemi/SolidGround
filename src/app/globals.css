@@ -1,0 +1,211 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* ── Gray Scale (Slate-based) ────────────────────────── */
+  --color-gray-50:  #F8FAFC;
+  --color-gray-100: #F1F5F9;
+  --color-gray-200: #E2E8F0;
+  --color-gray-300: #CBD5E1;
+  --color-gray-400: #94A3B8;
+  --color-gray-500: #64748B;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1E293B;
+  --color-gray-900: #0F172A;
+  --color-gray-950: #020617;
+
+  /* ── Brand Accent (Blue-Indigo, sophisticated) ───────── */
+  --color-accent-50:  #EEF2FF;
+  --color-accent-100: #E0E7FF;
+  --color-accent-200: #C7D2FE;
+  --color-accent-300: #A5B4FC;
+  --color-accent-400: #818CF8;
+  --color-accent-500: #6366F1;
+  --color-accent-600: #4F46E5;
+  --color-accent-700: #4338CA;
+  --color-accent-800: #3730A3;
+  --color-accent-900: #312E81;
+
+  /* ── Semantic: Success (desaturated green) ───────────── */
+  --color-success-50:  #ECFDF5;
+  --color-success-100: #D1FAE5;
+  --color-success-200: #A7F3D0;
+  --color-success-500: #10B981;
+  --color-success-600: #059669;
+  --color-success-700: #047857;
+
+  /* ── Semantic: Warning (desaturated amber/gold) ──────── */
+  --color-warning-50:  #FFFBEB;
+  --color-warning-100: #FEF3C7;
+  --color-warning-200: #FDE68A;
+  --color-warning-500: #F59E0B;
+  --color-warning-600: #D97706;
+  --color-warning-700: #B45309;
+
+  /* ── Semantic: Danger (muted red) ────────────────────── */
+  --color-danger-50:  #FEF2F2;
+  --color-danger-100: #FEE2E2;
+  --color-danger-200: #FECACA;
+  --color-danger-500: #EF4444;
+  --color-danger-600: #DC2626;
+  --color-danger-700: #B91C1C;
+
+  /* ── Semantic: Info (muted blue) ─────────────────────── */
+  --color-info-50:  #EFF6FF;
+  --color-info-100: #DBEAFE;
+  --color-info-500: #3B82F6;
+  --color-info-600: #2563EB;
+
+  /* ── Surface Colors ──────────────────────────────────── */
+  --color-sidebar-bg:       #0F172A;   /* slate-900 */
+  --color-sidebar-hover:    #1E293B;   /* slate-800 */
+  --color-sidebar-active:   #1E293B;   /* slate-800 */
+  --color-sidebar-border:   #1E293B;   /* slate-800 — subtle divider */
+  --color-sidebar-text:     #CBD5E1;   /* slate-300 */
+  --color-sidebar-text-dim: #A8B5C7;   /* contrast-safe on slate-900 */
+  --color-sidebar-icon:     #94A3B8;   /* slate-400 */
+
+  --color-content-bg:       #F8FAFC;   /* gray-50 — light, airy */
+  --color-card-bg:          #FFFFFF;   /* white */
+  --color-card-hover:       #F8FAFC;   /* gray-50 */
+  --color-card-border:      #E2E8F0;   /* gray-200 */
+  --color-card-shadow:      0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+
+  --color-divider:          #E2E8F0;   /* gray-200 */
+
+  /* ── Text Colors ─────────────────────────────────────── */
+  --color-text-primary:     #0F172A;   /* slate-900 */
+  --color-text-secondary:   #475569;   /* slate-600 */
+  --color-text-tertiary:    #52627A;   /* contrast-safe on white */
+  --color-text-inverse:     #F8FAFC;   /* gray-50 — for dark surfaces */
+
+  /* ── Score Colors (desaturated — elegant, not traffic light) ── */
+  --color-score-high:       #047857;   /* contrast-safe emerald */
+  --color-score-mid:        #B45309;   /* contrast-safe amber */
+  --color-score-low:        #B91C1C;   /* contrast-safe red */
+
+  /* ── Ring track color ────────────────────────────────── */
+  --color-ring-track:       #E2E8F0;   /* gray-200 */
+
+  /* ── Keep legacy solid-* variables for landing page compatibility ── */
+  --color-solid-bg: #FAF9F7;
+  --color-solid-surface: #FFFFFF;
+  --color-solid-text: #1A1A1A;
+  --color-solid-text-secondary: #6B6B6B;
+  --color-solid-text-tertiary: #9E9E9E;
+  --color-solid-border: #E8E6E1;
+  --color-solid-accent: #2E4A3A;
+  --color-solid-accent-hover: #1F3528;
+  --color-solid-accent-subtle: #EFF2EF;
+  --color-solid-error: #C44E4E;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--color-content-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  line-height: 1.6;
+}
+
+::selection {
+  background-color: var(--color-accent-100);
+  color: var(--color-text-primary);
+}
+
+/* Tabular numbers utility */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hide scrollbars on horizontal chip strips (assessment category rail) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Landing page motion (CSS-only, reduced-motion-safe) ─── */
+
+/* Hero load stagger: fade-up + 8px rise */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Ambient blob drift (hero background) */
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(40px, -24px, 0);
+  }
+}
+
+.animate-drift {
+  animation: drift 24s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* Blueprint mockup float */
+@keyframes float {
+  from {
+    transform: translateY(-6px);
+  }
+  to {
+    transform: translateY(6px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* Respect reduced motion: collapse all landing animation to
+   instantaneous (or none) for vestibular-safe users. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-drift,
+  .animate-float {
+    animation: none !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
