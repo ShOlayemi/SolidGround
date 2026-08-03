@@ -354,6 +354,7 @@ export const mockSupabase = new MockSupabase();
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => mockSupabase.client,
+  createServiceClient: async () => mockSupabase.client,
 }));
 
 vi.mock("@/lib/email/send", () => ({
