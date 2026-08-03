@@ -188,7 +188,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
           <p className="text-[12px] text-solid-text-tertiary mb-8">
             Your Compatibility Blueprint is ready ✓
           </p>
-          <AcceptButton inviteCode={code} />
+          <AcceptButton inviteCode={code} autoAccept />
         </div>
       </div>
     </div>
