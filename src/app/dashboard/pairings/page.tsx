@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getMyPairings } from "@/lib/pairings/actions";
 import { getDashboardData } from "@/lib/dashboard/actions";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +18,10 @@ export default async function PairingsPage() {
   const [result, dashboard] = await Promise.all([getMyPairings(), getDashboardData()]);
 
   if (!result.success) {
+    if (result.error === "Not authenticated.") {
+      redirect("/login?redirect=%2Fdashboard%2Fpairings");
+    }
+
     return (
       <div className="max-w-[640px] mx-auto py-20 px-4 text-center">
         <h1 className="text-[24px] font-semibold text-solid-text mb-3">
