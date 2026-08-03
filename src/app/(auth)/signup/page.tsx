@@ -23,6 +23,7 @@ function SignupForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const redirectPath = searchParams.get("redirect") ?? undefined;
     setError("");
 
     // Client-side validation
@@ -47,7 +48,7 @@ function SignupForm() {
     }
 
     setLoading(true);
-    const result = await signUp(email, password, fullName);
+    const result = await signUp(email, password, fullName, redirectPath);
     setLoading(false);
 
     if (!result.success) {

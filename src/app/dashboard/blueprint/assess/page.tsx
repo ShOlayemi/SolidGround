@@ -9,7 +9,12 @@ export const metadata: Metadata = {
   title: "Blueprint Assessment",
   description: "Complete your Compatibility Blueprint™ assessment.",
 };
-export default async function AssessPage() {
+interface AssessPageProps {
+  searchParams: Promise<{ inviteCode?: string }>;
+}
+
+export default async function AssessPage({ searchParams }: AssessPageProps) {
+  const { inviteCode } = await searchParams;
   // Get or create session
   const sessionResult = await getOrCreateSession();
 
@@ -46,7 +51,7 @@ export default async function AssessPage() {
   return (
     <div className="max-w-[960px]">
       <AnalyticsPageView name="assessment_started" properties={{ category_count: CATEGORY_ORDER.length }} />
-      <BlueprintWizardLazy session={session} initialAnswers={answers} />
+      <BlueprintWizardLazy session={session} initialAnswers={answers} inviteCode={inviteCode} />
     </div>
   );
 }

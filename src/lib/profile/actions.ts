@@ -50,10 +50,29 @@ export async function getProfile(): Promise<Profile | null> {
     .from("profiles")
     .select("*")
     .eq("id", session.user.id)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("Error fetching profile:", error);
+    return null;
+  }
+
+  // Older projects may have users created before the profile trigger was
+  // installed. Repair the missing row from Auth metadata on first dashboard
+  // access so the account never falls back to an email prefix.
+  if (!data) {
+    const fullName = typeof session.user.user_metadata?.full_name === "string"
+      ? session.user.user_metadata.full_name.trim()
+      : "";
+    if (fullName.length >= 2) {
+      const { data: repaired, error: repairError } = await supabase
+        .from("profiles")
+        .upsert({ id: session.user.id, full_name: fullName }, { onConflict: "id" })
+        .select("*")
+        .single();
+      if (!repairError && repaired) return repaired as Profile;
+      console.error("Error repairing missing profile:", repairError);
+    }
     return null;
   }
 

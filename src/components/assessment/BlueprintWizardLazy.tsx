@@ -46,9 +46,11 @@ const BlueprintWizard = dynamic(
 export function BlueprintWizardLazy({
   session,
   initialAnswers,
+  inviteCode,
 }: {
   session: AssessmentSession;
   initialAnswers: AssessmentAnswer[];
+  inviteCode?: string;
 }) {
-  return <BlueprintWizard session={session} initialAnswers={initialAnswers} />;
+  return <BlueprintWizard session={session} initialAnswers={initialAnswers} inviteCode={inviteCode} />;
 }

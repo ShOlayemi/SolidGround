@@ -13,6 +13,7 @@ export async function signUp(
   email: string,
   password: string,
   fullName: string,
+  redirectPath?: string,
 ): Promise<AuthResult> {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { success: false, error: "Please enter a valid email address." };
@@ -35,7 +36,7 @@ export async function signUp(
       data: {
         full_name: fullName.trim(),
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback${redirectPath ? `?next=${encodeURIComponent(redirectPath)}` : ""}`,
     },
   });
 
@@ -57,6 +58,7 @@ export async function signUp(
 export async function signIn(
   email: string,
   password: string,
+  _redirectPath?: string,
 ): Promise<AuthResult> {
   if (!email || !password) {
     return { success: false, error: "Please enter your email and password." };

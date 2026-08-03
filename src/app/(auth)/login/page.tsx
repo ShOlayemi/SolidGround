@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "@/lib/auth/actions";
@@ -10,6 +11,7 @@ import { trackEvent } from "@/lib/analytics/events";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -34,7 +36,11 @@ export default function LoginPage() {
     }
 
     trackEvent("login", { method: "email" });
-    router.push("/dashboard");
+    const redirectPath = searchParams.get("redirect");
+    const destination = redirectPath?.startsWith("/") && !redirectPath.startsWith("//")
+      ? redirectPath
+      : "/dashboard";
+    router.push(destination);
     router.refresh();
   }
 
