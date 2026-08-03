@@ -324,7 +324,10 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
                 router.push(`/dashboard/pairings/${acceptResult.pairingId}`);
                 return;
               }
+              // If auto-accept fails, redirect to invite page which will retry with autoAccept
               console.error("Failed to accept pairing invite after assessment:", acceptResult.error);
+              router.push(`/invite/${inviteCode}`);
+              return;
             }
             router.push(
               `/dashboard/blueprint/results?sessionId=${session.id}`,
