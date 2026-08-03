@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { trackEvent } from "@/lib/analytics/events";
 
-function LoginForm() {
+export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -126,13 +126,5 @@ function LoginForm() {
         </p>
       </div>
     </>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<div className="text-center text-sm text-solid-text-secondary">Loading…</div>}>
-      <LoginForm />
-    </Suspense>
   );
 }
