@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PREMIUM_ROUTES = ["/dashboard/pairings", "/dashboard/reports", "/dashboard/ai-coach"];
+const PREMIUM_ROUTES: string[] = [];  // All features are currently free-tier — no premium-only routes
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
