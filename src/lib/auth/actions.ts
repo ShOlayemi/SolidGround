@@ -49,8 +49,17 @@ export async function signUp(
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://solidground.ai";
   // Supabase sends its native verification message; these branded messages provide a fallback/companion.
+  // Preserve the requested destination in the branded link too. Otherwise users who
+  // verify through this message lose their invite code and land on /dashboard.
+  const verificationNext = redirectPath
+    ? `?next=${encodeURIComponent(redirectPath)}`
+    : "";
   void sendWelcomeEmail(email, fullName.trim());
-  void sendVerificationEmail(email, fullName.trim(), `${siteUrl}/auth/callback`);
+  void sendVerificationEmail(
+    email,
+    fullName.trim(),
+    `${siteUrl}/auth/callback${verificationNext}`,
+  );
 
   return { success: true };
 }

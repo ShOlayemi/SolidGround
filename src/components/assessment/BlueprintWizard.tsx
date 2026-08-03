@@ -299,13 +299,21 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
   /* ── Completion effect ─────────────────────────────────── */
 
   const [isComputing, setIsComputing] = useState(false);
+  const completionStartedRef = useRef(false);
 
   useEffect(() => {
-    if (wizardState === "all_complete") {
+    if (wizardState === "all_complete" && !completionStartedRef.current) {
+      completionStartedRef.current = true;
       const finish = async () => {
         setIsComputing(true);
         try {
-          await completeSession(session.id);
+          const completionResult = await completeSession(session.id);
+          if (!completionResult.success) {
+            console.error("Failed to complete assessment:", completionResult.error);
+            router.push("/dashboard/blueprint");
+            return;
+          }
+
           // Auto-compute results immediately after marking complete
           const computeResult = await computeResults(session.id);
           if (computeResult.success) {
@@ -332,7 +340,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
       };
       finish();
     }
-  }, [wizardState, session.id, router]);
+  }, [wizardState, session.id, inviteCode, router]);
 
   /* ── Keyboard navigation ───────────────────────────────── */
 
