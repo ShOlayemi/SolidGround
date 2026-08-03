@@ -12,6 +12,7 @@ import {
   saveAnswer,
   completeSession,
 } from "@/lib/assessment/actions";
+import { acceptInvite } from "@/lib/pairings/actions";
 import { computeResults } from "@/lib/scoring/actions";
 import type {
   AssessmentSession,
@@ -32,6 +33,7 @@ type WizardState = "answering" | "category_complete" | "all_complete";
 interface WizardProps {
   session: AssessmentSession;
   initialAnswers: AssessmentAnswer[];
+  inviteCode?: string;
 }
 
 /* ── Derived data ─────────────────────────────────────────── */
@@ -99,7 +101,7 @@ function findCategoryStartFlatIndex(cat: AssessmentCategory): number {
 
 /* ── Component ────────────────────────────────────────────── */
 
-export function BlueprintWizard({ session, initialAnswers }: WizardProps) {
+export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardProps) {
   const router = useRouter();
 
   // Build answers map from initial data
@@ -308,6 +310,14 @@ export function BlueprintWizard({ session, initialAnswers }: WizardProps) {
           const computeResult = await computeResults(session.id);
           if (computeResult.success) {
             trackEvent("assessment_completed", { score: computeResult.results?.overallScore ?? 0, categories_completed: CATEGORY_ORDER.length });
+            if (inviteCode) {
+              const acceptResult = await acceptInvite(inviteCode);
+              if (acceptResult.success && acceptResult.pairingId) {
+                router.push(`/dashboard/pairings/${acceptResult.pairingId}`);
+                return;
+              }
+              console.error("Failed to accept pairing invite after assessment:", acceptResult.error);
+            }
             router.push(
               `/dashboard/blueprint/results?sessionId=${session.id}`,
             );

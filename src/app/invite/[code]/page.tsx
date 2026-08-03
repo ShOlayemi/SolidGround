@@ -152,7 +152,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
               before you can compare results with your partner.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/dashboard/blueprint">
+              <Link href={`/dashboard/blueprint/assess?inviteCode=${encodeURIComponent(code)}`}>
                 <Button variant="filled" size="md">
                   Start Your Blueprint
                 </Button>
