@@ -5,6 +5,7 @@
 // ──────────────────────────────────────────────────────────────
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   PairingWithNames,
@@ -260,28 +261,27 @@ export async function acceptInvite(
     return { success: false, error: "Your results are not ready. Please compute your blueprint first." };
   }
 
-  // Get inviter's results (uses SECURITY DEFINER RPC to bypass RLS)
-  const { data: inviterResultsJson, error: inviterRpcError } = await supabase.rpc(
-    "get_partner_blueprint_results",
-    {
-      target_session_id: pairing.inviter_session_id,
-      target_user_id: pairing.inviter_user_id,
-      caller_user_id: userId,
-    },
-  );
+  // Get inviter's results via service client (bypass RLS for cross-user read)
+  const serviceClient = await createServiceClient();
+  const { data: inviterResultRow, error: inviterFetchError } = await serviceClient
+    .from("blueprint_results")
+    .select("session_id, user_id, category_results, overall_score, overall_confidence, created_at, updated_at")
+    .eq("session_id", pairing.inviter_session_id)
+    .eq("user_id", pairing.inviter_user_id)
+    .maybeSingle();
 
-  if (inviterRpcError || !inviterResultsJson) {
-    console.error("Error fetching inviter results via RPC:", inviterRpcError);
+  if (inviterFetchError || !inviterResultRow) {
+    console.error("Error fetching inviter results:", inviterFetchError);
     return { success: false, error: "The inviter's results are not available." };
   }
 
   const inviterResults: BlueprintResults = {
-    sessionId: inviterResultsJson.session_id,
-    userId: inviterResultsJson.user_id,
-    categoryResults: inviterResultsJson.category_results,
-    overallScore: inviterResultsJson.overall_score,
-    overallConfidence: inviterResultsJson.overall_confidence,
-    completedAt: inviterResultsJson.updated_at ?? inviterResultsJson.created_at,
+    sessionId: inviterResultRow.session_id,
+    userId: inviterResultRow.user_id,
+    categoryResults: inviterResultRow.category_results,
+    overallScore: inviterResultRow.overall_score,
+    overallConfidence: inviterResultRow.overall_confidence,
+    completedAt: inviterResultRow.updated_at ?? inviterResultRow.created_at,
   };
 
   // Compute alignment
@@ -487,48 +487,45 @@ export async function saveComparisonReport(
     return { success: false, error: "This pairing has not been accepted yet." };
   }
 
-  // Fetch inviter results (uses SECURITY DEFINER RPC to bypass RLS)
-  const { data: inviterResultsJson, error: inviterRpcError } = await supabase.rpc(
-    "get_partner_blueprint_results",
-    {
-      target_session_id: p.inviter_session_id,
-      target_user_id: p.inviter_user_id,
-      caller_user_id: userId,
-    },
-  );
-  if (inviterRpcError || !inviterResultsJson) {
+  // Fetch both users' results via service client (bypass RLS for cross-user reads)
+  const serviceClient = await createServiceClient();
+
+  const { data: inviterResultRow, error: inviterFetchError } = await serviceClient
+    .from("blueprint_results")
+    .select("session_id, user_id, category_results, overall_score, overall_confidence, created_at, updated_at")
+    .eq("session_id", p.inviter_session_id)
+    .eq("user_id", p.inviter_user_id)
+    .maybeSingle();
+  if (inviterFetchError || !inviterResultRow) {
     return { success: false, error: "Inviter's blueprint results are not available." };
   }
 
   const inviterResults: BlueprintResults = {
-    sessionId: inviterResultsJson.session_id,
-    userId: inviterResultsJson.user_id,
-    categoryResults: inviterResultsJson.category_results,
-    overallScore: inviterResultsJson.overall_score,
-    overallConfidence: inviterResultsJson.overall_confidence,
-    completedAt: inviterResultsJson.updated_at ?? inviterResultsJson.created_at,
+    sessionId: inviterResultRow.session_id,
+    userId: inviterResultRow.user_id,
+    categoryResults: inviterResultRow.category_results,
+    overallScore: inviterResultRow.overall_score,
+    overallConfidence: inviterResultRow.overall_confidence,
+    completedAt: inviterResultRow.updated_at ?? inviterResultRow.created_at,
   };
 
-  // Fetch invitee results
-  const { data: inviteeResultsJson, error: inviteeRpcError } = await supabase.rpc(
-    "get_partner_blueprint_results",
-    {
-      target_session_id: p.invitee_session_id,
-      target_user_id: p.invitee_user_id,
-      caller_user_id: userId,
-    },
-  );
-  if (inviteeRpcError || !inviteeResultsJson) {
+  const { data: inviteeResultRow, error: inviteeFetchError } = await serviceClient
+    .from("blueprint_results")
+    .select("session_id, user_id, category_results, overall_score, overall_confidence, created_at, updated_at")
+    .eq("session_id", p.invitee_session_id)
+    .eq("user_id", p.invitee_user_id)
+    .maybeSingle();
+  if (inviteeFetchError || !inviteeResultRow) {
     return { success: false, error: "Invitee's blueprint results are not available." };
   }
 
   const inviteeResults: BlueprintResults = {
-    sessionId: inviteeResultsJson.session_id,
-    userId: inviteeResultsJson.user_id,
-    categoryResults: inviteeResultsJson.category_results,
-    overallScore: inviteeResultsJson.overall_score,
-    overallConfidence: inviteeResultsJson.overall_confidence,
-    completedAt: inviteeResultsJson.updated_at ?? inviteeResultsJson.created_at,
+    sessionId: inviteeResultRow.session_id,
+    userId: inviteeResultRow.user_id,
+    categoryResults: inviteeResultRow.category_results,
+    overallScore: inviteeResultRow.overall_score,
+    overallConfidence: inviteeResultRow.overall_confidence,
+    completedAt: inviteeResultRow.updated_at ?? inviteeResultRow.created_at,
   };
 
   // Generate and upsert report
@@ -729,48 +726,45 @@ export async function refreshReport(
     return { success: false, error: "This pairing has not been accepted yet." };
   }
 
-  // Re-fetch inviter results via RPC (they might have updated their blueprint)
-  const { data: inviterResultsJson, error: inviterRpcError } = await supabase.rpc(
-    "get_partner_blueprint_results",
-    {
-      target_session_id: p.inviter_session_id,
-      target_user_id: p.inviter_user_id,
-      caller_user_id: userId,
-    },
-  );
-  if (inviterRpcError || !inviterResultsJson) {
+  // Re-fetch both users' results via service client (bypass RLS)
+  const serviceClient2 = await createServiceClient();
+
+  const { data: inviterResultRow, error: inviterFetchError } = await serviceClient2
+    .from("blueprint_results")
+    .select("session_id, user_id, category_results, overall_score, overall_confidence, created_at, updated_at")
+    .eq("session_id", p.inviter_session_id)
+    .eq("user_id", p.inviter_user_id)
+    .maybeSingle();
+  if (inviterFetchError || !inviterResultRow) {
     return { success: false, error: "Inviter's blueprint results are not available." };
   }
 
   const inviterResults: BlueprintResults = {
-    sessionId: inviterResultsJson.session_id,
-    userId: inviterResultsJson.user_id,
-    categoryResults: inviterResultsJson.category_results,
-    overallScore: inviterResultsJson.overall_score,
-    overallConfidence: inviterResultsJson.overall_confidence,
-    completedAt: inviterResultsJson.updated_at ?? inviterResultsJson.created_at,
+    sessionId: inviterResultRow.session_id,
+    userId: inviterResultRow.user_id,
+    categoryResults: inviterResultRow.category_results,
+    overallScore: inviterResultRow.overall_score,
+    overallConfidence: inviterResultRow.overall_confidence,
+    completedAt: inviterResultRow.updated_at ?? inviterResultRow.created_at,
   };
 
-  // Re-fetch invitee results via RPC
-  const { data: inviteeResultsJson, error: inviteeRpcError } = await supabase.rpc(
-    "get_partner_blueprint_results",
-    {
-      target_session_id: p.invitee_session_id,
-      target_user_id: p.invitee_user_id,
-      caller_user_id: userId,
-    },
-  );
-  if (inviteeRpcError || !inviteeResultsJson) {
+  const { data: inviteeResultRow, error: inviteeFetchError } = await serviceClient2
+    .from("blueprint_results")
+    .select("session_id, user_id, category_results, overall_score, overall_confidence, created_at, updated_at")
+    .eq("session_id", p.invitee_session_id)
+    .eq("user_id", p.invitee_user_id)
+    .maybeSingle();
+  if (inviteeFetchError || !inviteeResultRow) {
     return { success: false, error: "Invitee's blueprint results are not available." };
   }
 
   const inviteeResults: BlueprintResults = {
-    sessionId: inviteeResultsJson.session_id,
-    userId: inviteeResultsJson.user_id,
-    categoryResults: inviteeResultsJson.category_results,
-    overallScore: inviteeResultsJson.overall_score,
-    overallConfidence: inviteeResultsJson.overall_confidence,
-    completedAt: inviteeResultsJson.updated_at ?? inviteeResultsJson.created_at,
+    sessionId: inviteeResultRow.session_id,
+    userId: inviteeResultRow.user_id,
+    categoryResults: inviteeResultRow.category_results,
+    overallScore: inviteeResultRow.overall_score,
+    overallConfidence: inviteeResultRow.overall_confidence,
+    completedAt: inviteeResultRow.updated_at ?? inviteeResultRow.created_at,
   };
 
   // Regenerate report
