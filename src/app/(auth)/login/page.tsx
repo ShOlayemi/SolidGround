@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { trackEvent } from "@/lib/analytics/events";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -88,8 +88,6 @@ export default function LoginPage() {
             disabled={loading}
             autoComplete="current-password"
           />
-          {/* Use text type with manual masking via CSS? Let's use input type password properly */}
-          {/* Actually Input doesn't support password type – need to adjust */}
         </div>
 
         {error && (
@@ -126,5 +124,23 @@ export default function LoginPage() {
         </p>
       </div>
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="animate-pulse space-y-5">
+        <div className="h-7 bg-slate-200 rounded w-1/3" />
+        <div className="h-4 bg-slate-200 rounded w-2/3" />
+        <div className="space-y-3 mt-8">
+          <div className="h-10 bg-slate-200 rounded" />
+          <div className="h-10 bg-slate-200 rounded" />
+          <div className="h-11 bg-slate-200 rounded" />
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
