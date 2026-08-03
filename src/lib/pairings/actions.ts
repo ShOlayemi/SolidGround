@@ -260,15 +260,29 @@ export async function acceptInvite(
     return { success: false, error: "Your results are not ready. Please compute your blueprint first." };
   }
 
-  // Get inviter's results
-  const inviterResults = await getSessionResults(
-    supabase,
-    pairing.inviter_session_id,
-    pairing.inviter_user_id,
+  // Get inviter's results (uses SECURITY DEFINER RPC to bypass RLS)
+  const { data: inviterResultsJson, error: inviterRpcError } = await supabase.rpc(
+    "get_partner_blueprint_results",
+    {
+      target_session_id: pairing.inviter_session_id,
+      target_user_id: pairing.inviter_user_id,
+      caller_user_id: userId,
+    },
   );
-  if (!inviterResults) {
+
+  if (inviterRpcError || !inviterResultsJson) {
+    console.error("Error fetching inviter results via RPC:", inviterRpcError);
     return { success: false, error: "The inviter's results are not available." };
   }
+
+  const inviterResults: BlueprintResults = {
+    sessionId: inviterResultsJson.session_id,
+    userId: inviterResultsJson.user_id,
+    categoryResults: inviterResultsJson.category_results,
+    overallScore: inviterResultsJson.overall_score,
+    overallConfidence: inviterResultsJson.overall_confidence,
+    completedAt: inviterResultsJson.updated_at ?? inviterResultsJson.created_at,
+  };
 
   // Compute alignment
   const alignmentResults = computeAlignment(inviterResults, inviteeResults);
@@ -473,17 +487,49 @@ export async function saveComparisonReport(
     return { success: false, error: "This pairing has not been accepted yet." };
   }
 
-  // Fetch inviter results
-  const inviterResults = await getSessionResults(supabase, p.inviter_session_id, p.inviter_user_id);
-  if (!inviterResults) {
+  // Fetch inviter results (uses SECURITY DEFINER RPC to bypass RLS)
+  const { data: inviterResultsJson, error: inviterRpcError } = await supabase.rpc(
+    "get_partner_blueprint_results",
+    {
+      target_session_id: p.inviter_session_id,
+      target_user_id: p.inviter_user_id,
+      caller_user_id: userId,
+    },
+  );
+  if (inviterRpcError || !inviterResultsJson) {
     return { success: false, error: "Inviter's blueprint results are not available." };
   }
 
+  const inviterResults: BlueprintResults = {
+    sessionId: inviterResultsJson.session_id,
+    userId: inviterResultsJson.user_id,
+    categoryResults: inviterResultsJson.category_results,
+    overallScore: inviterResultsJson.overall_score,
+    overallConfidence: inviterResultsJson.overall_confidence,
+    completedAt: inviterResultsJson.updated_at ?? inviterResultsJson.created_at,
+  };
+
   // Fetch invitee results
-  const inviteeResults = await getSessionResults(supabase, p.invitee_session_id, p.invitee_user_id);
-  if (!inviteeResults) {
+  const { data: inviteeResultsJson, error: inviteeRpcError } = await supabase.rpc(
+    "get_partner_blueprint_results",
+    {
+      target_session_id: p.invitee_session_id,
+      target_user_id: p.invitee_user_id,
+      caller_user_id: userId,
+    },
+  );
+  if (inviteeRpcError || !inviteeResultsJson) {
     return { success: false, error: "Invitee's blueprint results are not available." };
   }
+
+  const inviteeResults: BlueprintResults = {
+    sessionId: inviteeResultsJson.session_id,
+    userId: inviteeResultsJson.user_id,
+    categoryResults: inviteeResultsJson.category_results,
+    overallScore: inviteeResultsJson.overall_score,
+    overallConfidence: inviteeResultsJson.overall_confidence,
+    completedAt: inviteeResultsJson.updated_at ?? inviteeResultsJson.created_at,
+  };
 
   // Generate and upsert report
   const report = generateComparisonReport(pairingId, inviterResults, inviteeResults);
@@ -683,17 +729,49 @@ export async function refreshReport(
     return { success: false, error: "This pairing has not been accepted yet." };
   }
 
-  // Re-fetch inviter results (they might have updated their blueprint)
-  const inviterResults = await getSessionResults(supabase, p.inviter_session_id, p.inviter_user_id);
-  if (!inviterResults) {
+  // Re-fetch inviter results via RPC (they might have updated their blueprint)
+  const { data: inviterResultsJson, error: inviterRpcError } = await supabase.rpc(
+    "get_partner_blueprint_results",
+    {
+      target_session_id: p.inviter_session_id,
+      target_user_id: p.inviter_user_id,
+      caller_user_id: userId,
+    },
+  );
+  if (inviterRpcError || !inviterResultsJson) {
     return { success: false, error: "Inviter's blueprint results are not available." };
   }
 
-  // Re-fetch invitee results
-  const inviteeResults = await getSessionResults(supabase, p.invitee_session_id, p.invitee_user_id);
-  if (!inviteeResults) {
+  const inviterResults: BlueprintResults = {
+    sessionId: inviterResultsJson.session_id,
+    userId: inviterResultsJson.user_id,
+    categoryResults: inviterResultsJson.category_results,
+    overallScore: inviterResultsJson.overall_score,
+    overallConfidence: inviterResultsJson.overall_confidence,
+    completedAt: inviterResultsJson.updated_at ?? inviterResultsJson.created_at,
+  };
+
+  // Re-fetch invitee results via RPC
+  const { data: inviteeResultsJson, error: inviteeRpcError } = await supabase.rpc(
+    "get_partner_blueprint_results",
+    {
+      target_session_id: p.invitee_session_id,
+      target_user_id: p.invitee_user_id,
+      caller_user_id: userId,
+    },
+  );
+  if (inviteeRpcError || !inviteeResultsJson) {
     return { success: false, error: "Invitee's blueprint results are not available." };
   }
+
+  const inviteeResults: BlueprintResults = {
+    sessionId: inviteeResultsJson.session_id,
+    userId: inviteeResultsJson.user_id,
+    categoryResults: inviteeResultsJson.category_results,
+    overallScore: inviteeResultsJson.overall_score,
+    overallConfidence: inviteeResultsJson.overall_confidence,
+    completedAt: inviteeResultsJson.updated_at ?? inviteeResultsJson.created_at,
+  };
 
   // Regenerate report
   const report = generateComparisonReport(pairingId, inviterResults, inviteeResults);
