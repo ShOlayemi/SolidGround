@@ -262,6 +262,11 @@ export async function acceptInvite(
   }
 
   // Get inviter's results via service client (bypass RLS for cross-user read)
+  console.log("[acceptInvite] Fetching inviter results:", {
+    inviter_session_id: pairing.inviter_session_id,
+    inviter_user_id: pairing.inviter_user_id,
+    invite_code: inviteCode,
+  });
   const serviceClient = await createServiceClient();
   const { data: inviterResultRow, error: inviterFetchError } = await serviceClient
     .from("blueprint_results")
@@ -270,10 +275,16 @@ export async function acceptInvite(
     .eq("user_id", pairing.inviter_user_id)
     .maybeSingle();
 
-  if (inviterFetchError || !inviterResultRow) {
-    console.error("Error fetching inviter results:", inviterFetchError);
+  if (inviterFetchError) {
+    console.error("[acceptInvite] Service client fetch error:", inviterFetchError);
     return { success: false, error: "The inviter's results are not available." };
   }
+  if (!inviterResultRow) {
+    console.error("[acceptInvite] No inviter results row found for session:", pairing.inviter_session_id, "user:", pairing.inviter_user_id);
+    return { success: false, error: "The inviter's results are not available." };
+  }
+
+  console.log("[acceptInvite] Inviter results found, overall_score:", inviterResultRow.overall_score);
 
   const inviterResults: BlueprintResults = {
     sessionId: inviterResultRow.session_id,

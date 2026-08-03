@@ -5,6 +5,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getPairingResults, getComparisonReport } from "@/lib/pairings/actions";
+import { createClient } from "@/lib/supabase/server";
 import { ChatPanelLazy } from "@/components/chat/ChatPanelLazy";
 import { MessageCircle, ShieldAlert, Sprout, Swords } from "lucide-react";
 import type { ComparisonReport, ConflictItem, ConversationGuide, GrowthOpportunity, DealBreakerIntersection } from "@/types";
@@ -71,6 +72,12 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
   const reportResult = await getComparisonReport(id);
   const report = reportResult.success ? reportResult.report : null;
 
+  // Determine current user's role
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isInviter = user?.id === pairing.inviter_user_id;
+  const inviteCode = pairing.invite_code;
+
   if (pairing.status !== "completed" || !pairing.alignment_results) {
     return (
       <div className="max-w-[640px] mx-auto py-20 px-4 text-center">
@@ -79,14 +86,25 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
         </h1>
         <p className="text-[15px] text-solid-text-secondary mb-6">
           {pairing.status === "pending"
-            ? "Waiting for your partner to accept the invite."
+            ? (isInviter
+                ? "Waiting for your partner to accept the invite."
+                : "Your pairing hasn't been accepted yet.")
             : "Alignment results are being computed."}
         </p>
-        <Link href="/dashboard/pairings">
-          <Button variant="filled" size="md">
-            ← Back to Pairings
-          </Button>
-        </Link>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          {!isInviter && pairing.status === "pending" && (
+            <Link href={`/invite/${inviteCode}`}>
+              <Button variant="filled" size="md">
+                Accept Invite →
+              </Button>
+            </Link>
+          )}
+          <Link href="/dashboard/pairings">
+            <Button variant="ghost" size="md">
+              ← Back to Pairings
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
