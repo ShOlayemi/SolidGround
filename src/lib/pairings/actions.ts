@@ -142,7 +142,17 @@ export async function createInvite(
   // Generate unique invite code
   const inviteCode = crypto.randomUUID().slice(0, 8);
 
-  // Insert pairing
+  // Insert pairing with inviter's results stored in alignment_results
+  // so acceptInvite can read them without cross-user blueprint_results RLS issues.
+  const inviterResultsPayload = {
+    sessionId: results.sessionId,
+    userId: results.userId,
+    categoryResults: results.categoryResults,
+    overallScore: results.overallScore,
+    overallConfidence: results.overallConfidence,
+    completedAt: results.completedAt,
+  };
+
   const { data: pairing, error: insertError } = await supabase
     .from("pairings")
     .insert({
@@ -150,6 +160,7 @@ export async function createInvite(
       inviter_user_id: userId,
       inviter_session_id: sessionId,
       status: "pending",
+      alignment_results: { inviter_results: inviterResultsPayload },
     })
     .select("id")
     .single();
@@ -261,38 +272,30 @@ export async function acceptInvite(
     return { success: false, error: "Your results are not ready. Please compute your blueprint first." };
   }
 
-  // Get inviter's results via service client (bypass RLS for cross-user read)
-  console.log("[acceptInvite] Fetching inviter results:", {
-    inviter_session_id: pairing.inviter_session_id,
-    inviter_user_id: pairing.inviter_user_id,
-    invite_code: inviteCode,
-  });
-  const serviceClient = await createServiceClient();
-  const { data: inviterResultRow, error: inviterFetchError } = await serviceClient
-    .from("blueprint_results")
-    .select("session_id, user_id, category_results, overall_score, overall_confidence, created_at, updated_at")
-    .eq("session_id", pairing.inviter_session_id)
-    .eq("user_id", pairing.inviter_user_id)
-    .maybeSingle();
+  // Read inviter's results from the pairing (stored at invite creation to avoid RLS issues)
+  const inviterResultsData = (pairing.alignment_results as Record<string, unknown> | null)?.inviter_results as {
+    sessionId: string;
+    userId: string;
+    categoryResults: BlueprintResults["categoryResults"];
+    overallScore: number;
+    overallConfidence: number;
+    completedAt: string;
+  } | undefined;
 
-  if (inviterFetchError) {
-    console.error("[acceptInvite] Service client fetch error:", inviterFetchError);
-    return { success: false, error: "The inviter's results are not available." };
-  }
-  if (!inviterResultRow) {
-    console.error("[acceptInvite] No inviter results row found for session:", pairing.inviter_session_id, "user:", pairing.inviter_user_id);
+  if (!inviterResultsData) {
+    console.error("[acceptInvite] No inviter_results found in pairing alignment_results");
     return { success: false, error: "The inviter's results are not available." };
   }
 
-  console.log("[acceptInvite] Inviter results found, overall_score:", inviterResultRow.overall_score);
+  console.log("[acceptInvite] Found inviter results in pairing, overall_score:", inviterResultsData.overallScore);
 
   const inviterResults: BlueprintResults = {
-    sessionId: inviterResultRow.session_id,
-    userId: inviterResultRow.user_id,
-    categoryResults: inviterResultRow.category_results,
-    overallScore: inviterResultRow.overall_score,
-    overallConfidence: inviterResultRow.overall_confidence,
-    completedAt: inviterResultRow.updated_at ?? inviterResultRow.created_at,
+    sessionId: inviterResultsData.sessionId,
+    userId: inviterResultsData.userId,
+    categoryResults: inviterResultsData.categoryResults,
+    overallScore: inviterResultsData.overallScore,
+    overallConfidence: inviterResultsData.overallConfidence,
+    completedAt: inviterResultsData.completedAt,
   };
 
   // Compute alignment
