@@ -14,6 +14,8 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email") ?? "";
   const [fullName, setFullName] = useState("");
+  const [gender, setGender] = useState("");
+  const [age, setAge] = useState("");
   const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -48,7 +50,14 @@ function SignupForm() {
     }
 
     setLoading(true);
-    const result = await signUp(email, password, fullName, redirectPath);
+    const result = await signUp(
+      email,
+      password,
+      fullName,
+      redirectPath,
+      gender || undefined,
+      age ? Number(age) : undefined,
+    );
     setLoading(false);
 
     if (!result.success) {
@@ -110,6 +119,47 @@ function SignupForm() {
             onChange={(e) => setFullName(e.target.value)}
             disabled={loading}
             autoComplete="name"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="gender"
+            className="block text-[13px] font-medium text-solid-text-secondary"
+          >
+            Gender <span className="font-normal text-solid-text-tertiary">(optional)</span>
+          </label>
+          <select
+            id="gender"
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            disabled={loading}
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-5 py-3.5 text-[17px] leading-[1.6] text-white outline-none transition-colors duration-150 focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
+          >
+            <option value="">Select gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="age"
+            className="block text-[13px] font-medium text-solid-text-secondary"
+          >
+            Age <span className="font-normal text-solid-text-tertiary">(optional)</span>
+          </label>
+          <Input
+            id="age"
+            type="number"
+            min={18}
+            max={120}
+            placeholder="18–120"
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
+            disabled={loading}
+            inputMode="numeric"
           />
         </div>
 
