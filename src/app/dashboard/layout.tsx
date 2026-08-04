@@ -5,6 +5,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { FeedbackWidgetLazy } from "@/components/feedback/FeedbackWidgetLazy";
 import { NPSHostLazy } from "@/components/feedback/NPSHostLazy";
 import { getNPSEligibility } from "@/lib/feedback/actions";
+import { getConnectionRequests } from "@/lib/connections/actions";
 
 export default async function DashboardLayout({
   children,
@@ -16,7 +17,10 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const npsResult = await getNPSEligibility(session.user.id);
+  const [npsResult, connectionRequests] = await Promise.all([
+    getNPSEligibility(session.user.id),
+    getConnectionRequests(),
+  ]);
 
   const userEmail = session.user.email ?? "";
   const userName =
@@ -26,7 +30,11 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-content-bg">
-      <Sidebar userEmail={userEmail} userName={userName} />
+      <Sidebar
+        userEmail={userEmail}
+        userName={userName}
+        pendingRequestCount={connectionRequests.success ? connectionRequests.unreadCount : 0}
+      />
 
       {/* Main content area — offset by sidebar width */}
       <main id="main-content" className="transition-[margin] duration-200 ease-out ml-0 md:ml-16 lg:ml-60">

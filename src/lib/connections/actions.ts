@@ -2,7 +2,7 @@
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { createNotification } from "@/lib/notifications/actions";
-import { computeAlignment } from "@/lib/pairings/alignment";
+import { computeAlignment, generateComparisonReport } from "@/lib/pairings/alignment";
 import type { BlueprintResults } from "@/lib/scoring/types";
 
 type Result<T> = { success: boolean; error?: string } & T;
@@ -70,8 +70,27 @@ export async function respondToConnectionRequest(requestId: string, accept: bool
   const status = accept ? "accepted" : "declined"; const { error } = await service.from("connection_requests").update({ status }).eq("id", requestId); if (error) return { success: false, error: error.message };
   if (!accept) return { success: true };
   const [fromResults, toResults] = await Promise.all([latestResults(service, req.from_user_id), latestResults(service, req.to_user_id)]); if (!fromResults || !toResults) return { success: false, error: "Both users must have completed their Blueprint." };
-  const { data: pairing, error: pairingError } = await service.from("pairings").insert({ invite_code: crypto.randomUUID().slice(0, 8), inviter_user_id: req.from_user_id, inviter_session_id: fromResults.sessionId, invitee_user_id: req.to_user_id, invitee_session_id: toResults.sessionId, status: "completed", alignment_results: computeAlignment(fromResults, toResults) }).select("id").single();
+  const alignmentResults = computeAlignment(fromResults, toResults);
+  const { data: pairing, error: pairingError } = await service.from("pairings").insert({ invite_code: crypto.randomUUID().slice(0, 8), inviter_user_id: req.from_user_id, inviter_session_id: fromResults.sessionId, invitee_user_id: req.to_user_id, invitee_session_id: toResults.sessionId, status: "completed", alignment_results: alignmentResults }).select("id").single();
   if (pairingError || !pairing) return { success: false, error: pairingError?.message ?? "Failed to create pairing." };
+
+  // Generate the report after pairing creation; a report failure must not undo acceptance.
+  try {
+    const report = generateComparisonReport(pairing.id, fromResults, toResults);
+    await service.from("comparison_reports").upsert({
+      pairing_id: pairing.id,
+      overall_compatibility: report.overallCompatibility,
+      category_comparisons: report.categoryComparisons,
+      shared_strengths: report.sharedStrengths,
+      potential_conflicts: report.potentialConflicts,
+      conversation_guides: report.conversationGuides,
+      growth_opportunities: report.growthOpportunities,
+      deal_breaker_intersections: report.dealBreakerIntersections,
+    }, { onConflict: "pairing_id" });
+  } catch (error) {
+    console.error("Failed to save comparison report:", error);
+  }
+
   await createNotification(req.from_user_id, "connection_accepted", "Connection accepted", "Your connection request was accepted. Your Alignment Match is ready.", { pairing_id: pairing.id, href: `/dashboard/pairings/${pairing.id}` });
   return { success: true, pairingId: pairing.id };
 }

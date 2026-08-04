@@ -50,9 +50,10 @@ const NAV_ITEMS = [
 interface SidebarProps {
   userEmail: string;
   userName: string;
+  pendingRequestCount?: number;
 }
 
-export function Sidebar({ userEmail, userName }: SidebarProps) {
+export function Sidebar({ userEmail, userName, pendingRequestCount = 0 }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -149,6 +150,14 @@ export function Sidebar({ userEmail, userName }: SidebarProps) {
               >
                 <Icon size={18} strokeWidth={1.5} className="shrink-0" />
                 <span className="inline md:hidden lg:inline">{item.label}</span>
+                {item.href === "/dashboard/requests" && pendingRequestCount > 0 && (
+                  <span
+                    className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white md:hidden lg:inline"
+                    aria-label={`${pendingRequestCount} pending incoming request${pendingRequestCount === 1 ? "" : "s"}`}
+                  >
+                    {pendingRequestCount > 99 ? "99+" : pendingRequestCount}
+                  </span>
+                )}
               </Link>
             );
           })}

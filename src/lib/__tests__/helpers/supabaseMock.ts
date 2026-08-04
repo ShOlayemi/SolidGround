@@ -30,7 +30,7 @@ interface QueryState {
   order?: { col: string; ascending: boolean };
   range?: [number, number];
   limit?: number;
-  action?: "insert" | "update" | "upsert";
+  action?: "insert" | "update" | "upsert" | "delete";
   payload?: Row | Row[];
   onConflict?: string;
 }
@@ -83,6 +83,7 @@ const INSERT_DEFAULTS: Record<string, Row> = {
   notifications: { read: false },
   feedback: { status: "new" },
   pairings: { status: "pending" },
+  connection_requests: { status: "pending" },
 };
 
 class QueryBuilder {
@@ -142,6 +143,10 @@ class QueryBuilder {
   update(payload: Row): this {
     this.state.action = "update";
     this.state.payload = payload;
+    return this;
+  }
+  delete(): this {
+    this.state.action = "delete";
     return this;
   }
   upsert(payload: Row | Row[], opts?: { onConflict?: string }): this {
@@ -234,6 +239,12 @@ class QueryBuilder {
       for (const t of targets) {
         Object.assign(t, s.payload);
       }
+      return Promise.resolve({ data: null, error: null, count: null });
+    }
+
+    if (s.action === "delete") {
+      const targets = new Set(this.matchedRows());
+      this.store.tables[s.table] = table.filter((row) => !targets.has(row));
       return Promise.resolve({ data: null, error: null, count: null });
     }
 
