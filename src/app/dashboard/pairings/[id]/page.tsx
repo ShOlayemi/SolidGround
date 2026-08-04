@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 import { checkAccess } from "@/lib/billing/middleware";
 import { UpgradePrompt } from "@/components/billing/UpgradePrompt";
 import { DownloadPdfButton } from "@/components/dashboard/DownloadPdfButton";
+import { RefreshReportButton } from "@/components/dashboard/RefreshReportButton";
 
 interface ComparisonPageProps {
   params: Promise<{ id: string }>;
@@ -186,6 +187,10 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
       )}
 
       {report ? <EnhancedSections report={report} /> : <div className="mb-10 rounded-xl border border-[#C4943A]/30 bg-[#C4943A]/[0.06] px-4 py-3 text-sm text-solid-text-secondary">Enhanced report not yet generated. Ask your partner to refresh.</div>}
+
+      <div className="mb-10 flex justify-end">
+        <RefreshReportButton pairingId={id} />
+      </div>
 
       <section className="mb-10">
         <h2 className="mb-2 flex items-center gap-2 text-[20px] font-semibold tracking-tight text-solid-text"><MessageCircle size={20} /> Partner Chat</h2>
