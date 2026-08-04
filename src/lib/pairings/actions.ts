@@ -406,7 +406,9 @@ export async function getPairingResults(
   const userIds = [pairing.inviter_user_id];
   if (pairing.invitee_user_id) userIds.push(pairing.invitee_user_id);
 
-  const { data: profiles } = await supabase
+  // Use service client to read all profiles (RLS restricts to own profile only)
+  const serviceClientForPairingProfiles = await createServiceClient();
+  const { data: profiles } = await serviceClientForPairingProfiles
     .from("profiles")
     .select("id, display_name, full_name")
     .in("id", userIds);
@@ -472,7 +474,9 @@ export async function getMyPairings(): Promise<{
     if (p.invitee_user_id) userIds.add(p.invitee_user_id);
   }
 
-  const { data: profiles } = await supabase
+  // Use service client to read all profiles (RLS restricts to own profile only)
+  const serviceClientForMyPairings = await createServiceClient();
+  const { data: profiles } = await serviceClientForMyPairings
     .from("profiles")
     .select("id, display_name, full_name")
     .in("id", Array.from(userIds));
@@ -721,7 +725,9 @@ export async function getMessages(
     senderIds.add(row.sender_user_id);
   }
 
-  const { data: profiles } = await supabase
+  // Use service client to read all profiles (RLS restricts to own profile only)
+  const serviceClientForProfiles = await createServiceClient();
+  const { data: profiles } = await serviceClientForProfiles
     .from("profiles")
     .select("id, display_name, full_name")
     .in("id", Array.from(senderIds));
