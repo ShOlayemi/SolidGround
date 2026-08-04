@@ -214,12 +214,13 @@ describe("findDealBreakerIntersections", () => {
     expect(family.bothTriggered).toBe(false);
   });
 
-  it("covers all 12 categories", () => {
+  it("only includes categories with triggered deal-breakers", () => {
     const intersections = findDealBreakerIntersections(
       makeBlueprintResults("a", "s1"),
       makeBlueprintResults("b", "s2"),
     );
-    expect(intersections).toHaveLength(12);
+    // No deal-breakers triggered in the test blueprints, so the list should be empty
+    expect(intersections).toHaveLength(0);
   });
 });
 

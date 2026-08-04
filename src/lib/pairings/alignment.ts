@@ -450,6 +450,9 @@ export function findDealBreakerIntersections(
     const inviteeTriggered = inviteeCat?.dealBreakerTriggered ?? false;
     const bothTriggered = inviterTriggered && inviteeTriggered;
 
+    // Only include categories where at least one partner triggered a deal-breaker
+    if (!inviterTriggered && !inviteeTriggered) continue;
+
     intersections.push({
       categoryId: catId,
       categoryName,

@@ -163,7 +163,7 @@ describe("pairings flow", () => {
     expect(fetched.success).toBe(true);
     expect(fetched.report?.pairingId).toBe(pairingId);
     expect(fetched.report?.categoryComparisons).toHaveLength(12);
-    expect(fetched.report?.dealBreakerIntersections).toHaveLength(12);
+    expect(fetched.report?.dealBreakerIntersections).toHaveLength(0); // no deal-breakers triggered in test data
   });
 
   it("regenerates the report via saveComparisonReport and refreshReport", async () => {
