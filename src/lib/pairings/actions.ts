@@ -277,7 +277,7 @@ export async function acceptInvite(
   }
 
   // Read inviter's results from the pairing (stored at invite creation to avoid RLS issues)
-  const inviterResultsData = (pairing.alignment_results as Record<string, unknown> | null)?.inviter_results as {
+  let inviterResultsData = (pairing.alignment_results as Record<string, unknown> | null)?.inviter_results as {
     sessionId: string;
     userId: string;
     categoryResults: BlueprintResults["categoryResults"];
@@ -286,8 +286,29 @@ export async function acceptInvite(
     completedAt: string;
   } | undefined;
 
+  // Fallback: if inviter_results not embedded (old invite), query blueprint_results via service client
   if (!inviterResultsData) {
-    console.error("[acceptInvite] No inviter_results found in pairing alignment_results");
+    console.log("[acceptInvite] No embedded inviter_results, falling back to service client query");
+    const { data: row, error: svcErr } = await serviceClientForPairing
+      .from("blueprint_results")
+      .select("session_id, user_id, category_results, overall_score, overall_confidence, created_at, updated_at")
+      .eq("session_id", pairing.inviter_session_id)
+      .eq("user_id", pairing.inviter_user_id)
+      .maybeSingle();
+    if (!svcErr && row) {
+      inviterResultsData = {
+        sessionId: row.session_id,
+        userId: row.user_id,
+        categoryResults: row.category_results as BlueprintResults["categoryResults"],
+        overallScore: row.overall_score,
+        overallConfidence: row.overall_confidence,
+        completedAt: row.updated_at ?? row.created_at,
+      };
+    }
+  }
+
+  if (!inviterResultsData) {
+    console.error("[acceptInvite] No inviter_results found in pairing or blueprint_results");
     return { success: false, error: "The inviter's results are not available." };
   }
 
