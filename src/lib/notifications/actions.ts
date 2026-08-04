@@ -3,11 +3,11 @@
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type NotificationType = "partner_invite" | "invite_accepted" | "assessment_complete" | "subscription" | "system";
+export type NotificationType = "partner_invite" | "invite_accepted" | "connection_request" | "connection_accepted" | "assessment_complete" | "subscription" | "system";
 export type Notification = { id: string; user_id: string; type: NotificationType; title: string; message: string; data: Record<string, unknown> | null; read: boolean; created_at: string };
 export type NotificationPreferences = { email: Record<string, boolean>; in_app: Record<string, boolean> };
 
-const TYPES: NotificationType[] = ["partner_invite", "invite_accepted", "assessment_complete", "subscription", "system"];
+const TYPES: NotificationType[] = ["partner_invite", "invite_accepted", "connection_request", "connection_accepted", "assessment_complete", "subscription", "system"];
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   email: Object.fromEntries(TYPES.map((type) => [type, true])),
   in_app: Object.fromEntries(TYPES.map((type) => [type, true])),
