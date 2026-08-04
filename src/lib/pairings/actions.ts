@@ -196,9 +196,10 @@ export async function getInvite(
   status?: string;
   error?: string;
 }> {
-  const supabase = await createClient();
+  // Use service client — RLS blocks unauthenticated/invitee reads of pending pairings
+  const serviceClient = await createServiceClient();
 
-  const { data: pairing, error } = await supabase
+  const { data: pairing, error } = await serviceClient
     .from("pairings")
     .select("invite_code, inviter_user_id, status")
     .eq("invite_code", inviteCode)
@@ -208,12 +209,13 @@ export async function getInvite(
     return { success: false, error: "Invite not found." };
   }
 
-  // Resolve the inviter name through the narrowly scoped SECURITY DEFINER RPC.
-  // Direct profile reads are intentionally restricted to the profile owner.
-  const { data: inviterNameResult } = await supabase.rpc("get_profile_display_name", {
-    profile_id: pairing.inviter_user_id,
-  });
-  const inviterName = inviterNameResult ?? "Someone";
+  // Get inviter's name — use service client for the profile read
+  const { data: inviterProfile } = await serviceClient
+    .from("profiles")
+    .select("display_name, full_name")
+    .eq("id", pairing.inviter_user_id)
+    .maybeSingle();
+  const inviterName = inviterProfile?.display_name ?? inviterProfile?.full_name ?? "Someone";
 
   return {
     success: true,
@@ -235,8 +237,10 @@ export async function acceptInvite(
 
   const { supabase, userId } = auth;
 
-  // Find pairing
-  const { data: pairing, error: pairingError } = await supabase
+  // Use service client to read pairing (RLS blocks invitee from reading
+  // pending pairings because invitee_user_id is still null at this point).
+  const serviceClientForPairing = await createServiceClient();
+  const { data: pairing, error: pairingError } = await serviceClientForPairing
     .from("pairings")
     .select("id, invite_code, inviter_user_id, invitee_user_id, inviter_session_id, invitee_session_id, status, alignment_results, created_at, updated_at")
     .eq("invite_code", inviteCode)
