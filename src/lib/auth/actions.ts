@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail } from "@/lib/email/send";
 
@@ -14,6 +14,8 @@ export async function signUp(
   password: string,
   fullName: string,
   redirectPath?: string,
+  gender?: "male" | "female" | "other",
+  age?: number,
 ): Promise<AuthResult> {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { success: false, error: "Please enter a valid email address." };
@@ -27,14 +29,24 @@ export async function signUp(
     return { success: false, error: "Please enter your full name." };
   }
 
+  if (gender && !["male", "female", "other"].includes(gender)) {
+    return { success: false, error: "Invalid gender value." };
+  }
+
+  if (age !== undefined && (!Number.isInteger(age) || age < 18 || age > 120)) {
+    return { success: false, error: "Age must be between 18 and 120." };
+  }
+
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
         full_name: fullName.trim(),
+        ...(gender ? { gender } : {}),
+        ...(age !== undefined ? { age } : {}),
       },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback${redirectPath ? `?next=${encodeURIComponent(redirectPath)}` : ""}`,
     },
@@ -45,6 +57,25 @@ export async function signUp(
       return { success: false, error: "An account with this email already exists." };
     }
     return { success: false, error: error.message };
+  }
+
+  // The profile trigger copies the full name from Auth metadata. Apply the
+  // optional discovery fields after signup so older triggers remain compatible.
+  if (data.user && (gender !== undefined || age !== undefined)) {
+    const serviceClient = await createServiceClient();
+    const profileFields = {
+      id: data.user.id,
+      full_name: fullName.trim(),
+      ...(gender !== undefined ? { gender } : {}),
+      ...(age !== undefined ? { age } : {}),
+    };
+    const { error: profileError } = await serviceClient
+      .from("profiles")
+      .upsert(profileFields, { onConflict: "id" });
+    if (profileError) {
+      console.error("Error saving signup profile fields:", profileError);
+      return { success: false, error: "Your account was created, but profile details could not be saved." };
+    }
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://solidground.ai";

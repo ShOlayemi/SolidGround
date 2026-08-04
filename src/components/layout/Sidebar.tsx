@@ -15,6 +15,7 @@ import {
   MessageSquarePlus,
   Users,
   UserPlus,
+  User,
   Settings,
   Bell,
   CreditCard,
@@ -34,6 +35,7 @@ function getInitials(name: string): string {
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/profile", label: "Profile", icon: User },
   { href: "/dashboard/blueprint", label: "Blueprint", icon: FileText },
   { href: "/dashboard/scores", label: "Scores", icon: Target },
   { href: "/dashboard/charts", label: "Charts", icon: BarChart3 },
