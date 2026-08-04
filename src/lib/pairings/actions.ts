@@ -342,10 +342,11 @@ export async function acceptInvite(
     return { success: false, error: "Failed to accept invite." };
   }
 
-  // Generate and save comparison report
+  // Generate and save comparison report (use service client so it works regardless of RLS)
   try {
     const report = generateComparisonReport(pairing.id, inviterResults, inviteeResults);
-    await supabase.from("comparison_reports").upsert(
+    const serviceClientForReport = await createServiceClient();
+    await serviceClientForReport.from("comparison_reports").upsert(
       {
         pairing_id: pairing.id,
         overall_compatibility: report.overallCompatibility,
