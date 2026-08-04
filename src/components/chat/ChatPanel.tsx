@@ -15,6 +15,14 @@ export function ChatPanel({ pairingId, userName }: ChatPanelProps) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScroll = useRef(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = useCallback(() => {
+    if (shouldAutoScroll.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
 
   const loadMessages = useCallback(async (initial = false) => {
     if (initial) setLoading(true);
@@ -32,7 +40,22 @@ export function ChatPanel({ pairingId, userName }: ChatPanelProps) {
     return () => window.clearInterval(interval);
   }, [loadMessages]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  // Auto-scroll on initial load only, not on poll updates
+  const initialLoadDone = useRef(false);
+  useEffect(() => {
+    if (!initialLoadDone.current && messages.length > 0 && !loading) {
+      initialLoadDone.current = true;
+      scrollToBottom();
+    }
+  }, [messages, loading, scrollToBottom]);
+
+  // Detect manual scroll to stop auto-scrolling
+  function handleScroll() {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+    shouldAutoScroll.current = nearBottom;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,14 +63,19 @@ export function ChatPanel({ pairingId, userName }: ChatPanelProps) {
     if (!trimmed || sending) return;
     setSending(true);
     const result = await sendMessage(pairingId, trimmed);
-    if (result.success) { setContent(""); await loadMessages(); }
+    if (result.success) {
+      setContent("");
+      shouldAutoScroll.current = true;
+      await loadMessages();
+      scrollToBottom();
+    }
     else setError(true);
     setSending(false);
   }
 
   return (
     <div className="overflow-hidden rounded-2xl border border-solid-border bg-solid-surface">
-      <div className="h-[340px] overflow-y-auto p-4 md:p-6" aria-live="polite">
+      <div ref={scrollContainerRef} onScroll={handleScroll} className="h-[340px] overflow-y-auto p-4 md:p-6" aria-live="polite">
         {loading ? <div className="space-y-4">{[1, 2, 3].map((row) => <div key={row} className={`flex ${row % 2 ? "justify-start" : "justify-end"}`}><div className="h-14 w-2/3 animate-pulse rounded-2xl bg-slate-200" /></div>)}</div> : error ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center"><p className="text-sm text-red-600">Unable to load messages</p><button type="button" onClick={() => void loadMessages(true)} className="text-sm font-medium text-solid-accent underline">Try again</button></div>
         ) : messages.length === 0 ? (
