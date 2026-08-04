@@ -212,7 +212,7 @@ export interface AssessmentActionResult {
 
 // ── Pairing Types ────────────────────────────────────────────
 
-export type PairingStatus = "pending" | "accepted" | "completed";
+export type PairingStatus = "pending" | "accepted" | "active" | "completed";
 
 export interface CategoryAlignment {
   categoryId: string;
