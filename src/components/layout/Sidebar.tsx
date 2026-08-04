@@ -114,10 +114,10 @@ export function Sidebar({ userEmail, userName, pendingRequestCount = 0 }: Sideba
         )}
       >
         {/* Logo area */}
-        <div className="h-14 flex items-center px-5 md:justify-center md:px-0 lg:justify-start lg:px-5 shrink-0">
+        <div className="h-14 flex items-center justify-start px-5 shrink-0">
           {/* Brand dot */}
           <div className="w-5 h-5 rounded-full bg-accent-500 shrink-0" />
-          <span className="inline md:hidden lg:inline text-[18px] font-semibold tracking-tight text-text-inverse ml-2.5">
+          <span className="inline text-[18px] font-semibold tracking-tight text-text-inverse ml-2.5">
             SolidGround
           </span>
         </div>
@@ -138,10 +138,8 @@ export function Sidebar({ userEmail, userName, pendingRequestCount = 0 }: Sideba
                 aria-label={item.label}
                 aria-current={active ? "page" : undefined}
                 className={clsx(
-                  "flex items-center gap-3 py-3.5 md:py-2.5 rounded-lg text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400",
-                  "border-l-[3px]",
-                  "md:justify-center md:px-0 md:mx-0",
-                  "lg:justify-start lg:pl-[13px] lg:pr-4",
+                  "flex items-center gap-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400",
+                  "border-l-[3px] justify-start pl-[13px] pr-4",
                   active
                     ? "bg-sidebar-active text-text-inverse border-accent-500"
                     : "text-sidebar-text-dim border-transparent hover:bg-sidebar-hover hover:text-text-inverse",
@@ -149,10 +147,10 @@ export function Sidebar({ userEmail, userName, pendingRequestCount = 0 }: Sideba
                 onClick={() => setMobileOpen(false)}
               >
                 <Icon size={18} strokeWidth={1.5} className="shrink-0" />
-                <span className="inline md:hidden lg:inline">{item.label}</span>
+                <span className="inline">{item.label}</span>
                 {item.href === "/dashboard/requests" && pendingRequestCount > 0 && (
                   <span
-                    className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white md:hidden lg:inline"
+                    className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
                     aria-label={`${pendingRequestCount} pending incoming request${pendingRequestCount === 1 ? "" : "s"}`}
                   >
                     {pendingRequestCount > 99 ? "99+" : pendingRequestCount}
@@ -165,14 +163,14 @@ export function Sidebar({ userEmail, userName, pendingRequestCount = 0 }: Sideba
 
         {/* User row */}
         <div className="mt-auto pt-4 border-t border-sidebar-border px-4 pb-4">
-          <div className="flex items-center gap-3 md:justify-center lg:justify-start">
+          <div className="flex items-center gap-3 justify-start">
             {/* Avatar */}
             <div className="w-8 h-8 rounded-full bg-accent-600 flex items-center justify-center shrink-0">
               <span className="text-[11px] font-semibold text-white">
                 {initials}
               </span>
             </div>
-            <div className="block md:hidden lg:block min-w-0">
+            <div className="block min-w-0">
               <p className="text-[13px] font-medium text-sidebar-text truncate">
                 {userName}
               </p>
@@ -185,7 +183,7 @@ export function Sidebar({ userEmail, userName, pendingRequestCount = 0 }: Sideba
           {/* Sign out */}
           <form
             action={signOut}
-            className="mt-3 md:flex md:justify-center lg:block"
+            className="mt-3 block"
           >
             <button
               type="submit"
@@ -194,7 +192,7 @@ export function Sidebar({ userEmail, userName, pendingRequestCount = 0 }: Sideba
               aria-label="Sign out"
             >
               <LogOut size={16} strokeWidth={1.5} />
-              <span className="inline md:hidden lg:inline">Sign out</span>
+              <span className="inline">Sign out</span>
             </button>
           </form>
         </div>
