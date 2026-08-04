@@ -48,6 +48,45 @@ function labelFor(options: { value: string; label: string }[], value: string | n
   return options.find((o) => o.value === value)?.label ?? value;
 }
 
+/** Compress an avatar in the browser while preserving its aspect ratio. */
+export async function compressImage(file: File): Promise<Blob> {
+  try {
+    if (typeof document === "undefined" || typeof document.createElement !== "function") {
+      return file;
+    }
+
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error("Unable to read image"));
+        image.src = objectUrl;
+      });
+
+      const scale = Math.min(1, 400 / image.width, 400 / image.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      const context = canvas.getContext("2d");
+      if (!context) return file;
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      const toJpeg = (quality: number): Promise<Blob> =>
+        new Promise((resolve, reject) => {
+          canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Compression failed"))), "image/jpeg", quality);
+        });
+      const compressed = await toJpeg(0.8);
+      return compressed.size > 500 * 1024 ? await toJpeg(0.6) : compressed;
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  } catch {
+    // Upload the validated original if the browser cannot decode/compress it.
+    return file;
+  }
+}
+
 export function ProfileContent({ profile, userId, userEmail }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -153,13 +192,14 @@ export function ProfileContent({ profile, userId, userEmail }: Props) {
       setUploading(true);
       setMessage(null);
 
+      const compressed = await compressImage(file);
       const supabase = createClient();
-      const ext = file.name.split(".").pop() ?? "jpg";
-      const filePath = `${userId}.${ext}`;
+      // Compression produces JPEG, and the user-scoped folder matches storage RLS.
+      const filePath = `${userId}/avatar.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, compressed, { upsert: true, contentType: compressed.type || file.type });
 
       if (uploadError) {
         setMessage({

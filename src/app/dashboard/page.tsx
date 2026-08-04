@@ -5,6 +5,7 @@ import { getMyPairings } from "@/lib/pairings/actions";
 import { getAIInsights } from "@/lib/ai/actions";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
+import { Avatar } from "@/components/ui/Avatar";
 
 import type { Metadata } from "next";
 export const metadata: Metadata = {
@@ -20,10 +21,20 @@ export default async function DashboardPage() {
     let insights = null;
     if (data.completedSession?.id) { try { const r = await getAIInsights(data.completedSession.id); insights = r.insights ?? null; } catch { /* optional */ } }
     const name = data.profile?.display_name ?? data.profile?.full_name ?? "there";
+    const initials = name
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
     const progress = data.assessmentProgress;
     const activity = data.auditEntries;
     return <div className="max-w-[1200px]">
-      <header className="mb-8"><p className="text-sm font-medium text-accent-600">SolidGround AI</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-text-primary">Welcome back, {name}</h1><p className="mt-2 text-text-secondary">Your relationship intelligence, at a glance.</p></header>
+      <header className="mb-8 flex items-center gap-4">
+        <Avatar src={data.profile?.avatar_url} alt={name} size="lg" initials={initials} />
+        <div><p className="text-sm font-medium text-accent-600">SolidGround AI</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-text-primary">Welcome back, {name}</h1><p className="mt-2 text-text-secondary">Your relationship intelligence, at a glance.</p></div>
+      </header>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Link href={results ? "/dashboard/scores" : "/dashboard/blueprint"}><StatCard variant="score" label={results ? "View your scores" : "Complete your Blueprint →"} score={results?.overallScore} empty={!results} /></Link>
         <Link href="/dashboard/blueprint"><StatCard variant="progress" label={progress ? `${progress.totalAnswered} of ${progress.totalQuestions} questions` : "Start Assessment →"} percentage={progress?.percentage ?? 0} empty={!progress} /></Link>
