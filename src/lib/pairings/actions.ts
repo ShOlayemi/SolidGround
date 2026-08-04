@@ -326,8 +326,9 @@ export async function acceptInvite(
   // Compute alignment
   const alignmentResults = computeAlignment(inviterResults, inviteeResults);
 
-  // Update pairing
-  const { error: updateError } = await supabase
+  // Update pairing — use service client since invitee isn't in RLS policy yet
+  const serviceClientForUpdate = await createServiceClient();
+  const { error: updateError } = await serviceClientForUpdate
     .from("pairings")
     .update({
       invitee_user_id: userId,
