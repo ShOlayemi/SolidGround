@@ -55,7 +55,7 @@ function SignupForm() {
       password,
       fullName,
       redirectPath,
-      gender || undefined,
+      (gender as "male" | "female" | "other") || undefined,
       age ? Number(age) : undefined,
     );
     setLoading(false);
