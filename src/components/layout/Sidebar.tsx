@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
 import { signOut } from "@/lib/auth/actions";
+import { Avatar } from "@/components/ui/Avatar";
 import {
   LayoutDashboard,
   FileText,
@@ -52,10 +53,11 @@ const NAV_ITEMS = [
 interface SidebarProps {
   userEmail: string;
   userName: string;
+  avatarUrl?: string | null;
   pendingRequestCount?: number;
 }
 
-export function Sidebar({ userEmail, userName, pendingRequestCount = 0 }: SidebarProps) {
+export function Sidebar({ userEmail, userName, avatarUrl, pendingRequestCount = 0 }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -167,11 +169,7 @@ export function Sidebar({ userEmail, userName, pendingRequestCount = 0 }: Sideba
         <div className="mt-auto pt-4 border-t border-sidebar-border px-4 pb-4">
           <div className="flex items-center gap-3 justify-start">
             {/* Avatar */}
-            <div className="w-8 h-8 rounded-full bg-accent-600 flex items-center justify-center shrink-0">
-              <span className="text-[11px] font-semibold text-white">
-                {initials}
-              </span>
-            </div>
+            <Avatar src={avatarUrl} alt={userName} size="sm" initials={initials} />
             <div className="block min-w-0">
               <p className="text-[13px] font-medium text-sidebar-text truncate">
                 {userName}

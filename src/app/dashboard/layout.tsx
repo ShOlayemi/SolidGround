@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth/actions";
+import { getProfile } from "@/lib/profile/actions";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -17,9 +18,10 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const [npsResult, connectionRequests] = await Promise.all([
+  const [npsResult, connectionRequests, profile] = await Promise.all([
     getNPSEligibility(session.user.id),
     getConnectionRequests(),
+    getProfile(),
   ]);
 
   const userEmail = session.user.email ?? "";
@@ -32,7 +34,8 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-content-bg">
       <Sidebar
         userEmail={userEmail}
-        userName={userName}
+        userName={profile?.display_name ?? profile?.full_name ?? userName}
+        avatarUrl={profile?.avatar_url}
         pendingRequestCount={connectionRequests.success ? connectionRequests.unreadCount : 0}
       />
 
