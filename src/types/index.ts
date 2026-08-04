@@ -18,11 +18,7 @@ export interface CompatibilityProfile {
 
 // ── Profile Types ───────────────────────────────────────────
 
-export type Gender =
-  | "male"
-  | "female"
-  | "non_binary"
-  | "prefer_not_to_say";
+export type Gender = "male" | "female" | "other";
 
 export type RelationshipStatus =
   | "single"
@@ -48,8 +44,7 @@ export type EducationLevel =
 export const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: "male", label: "Male" },
   { value: "female", label: "Female" },
-  { value: "non_binary", label: "Non-binary" },
-  { value: "prefer_not_to_say", label: "Prefer not to say" },
+  { value: "other", label: "Other" },
 ];
 
 export const RELATIONSHIP_STATUS_OPTIONS: { value: RelationshipStatus; label: string }[] = [
@@ -80,7 +75,8 @@ export interface Profile {
   full_name: string;
   display_name: string | null;
   date_of_birth: string | null;
-  gender: Gender | null;
+  gender?: Gender | null;
+  age?: number | null;
   country: string | null;
   city: string | null;
   relationship_status: RelationshipStatus | null;
@@ -104,6 +100,8 @@ export interface ProfileUpdatePayload {
   education?: EducationLevel | "";
   occupation?: string;
   bio?: string;
+  age?: number;
+  avatar_url?: string;
 }
 
 export interface ProfileActionResult {
@@ -250,9 +248,11 @@ export interface PairingWithNames {
   invite_code: string;
   inviter_user_id: string;
   inviter_name: string;
+  inviter_avatar_url?: string | null;
   inviter_session_id: string;
   invitee_user_id: string | null;
   invitee_name: string | null;
+  invitee_avatar_url?: string | null;
   invitee_session_id: string | null;
   status: PairingStatus;
   alignment_results: AlignmentResults | null;

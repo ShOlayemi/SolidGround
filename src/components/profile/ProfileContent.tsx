@@ -63,6 +63,8 @@ export function ProfileContent({ profile, userId, userEmail }: Props) {
     display_name: profile?.display_name ?? "",
     date_of_birth: profile?.date_of_birth ?? "",
     gender: profile?.gender ?? "",
+    age: profile?.age?.toString() ?? "",
+    avatar_url: profile?.avatar_url ?? "",
     country: profile?.country ?? "",
     city: profile?.city ?? "",
     relationship_status: profile?.relationship_status ?? "",
@@ -88,6 +90,8 @@ export function ProfileContent({ profile, userId, userEmail }: Props) {
       display_name: profile?.display_name ?? "",
       date_of_birth: profile?.date_of_birth ?? "",
       gender: profile?.gender ?? "",
+      age: profile?.age?.toString() ?? "",
+      avatar_url: profile?.avatar_url ?? "",
       country: profile?.country ?? "",
       city: profile?.city ?? "",
       relationship_status: profile?.relationship_status ?? "",
@@ -108,6 +112,8 @@ export function ProfileContent({ profile, userId, userEmail }: Props) {
       display_name: form.display_name || undefined,
       date_of_birth: form.date_of_birth || undefined,
       gender: (form.gender as Gender) || "",
+      age: form.age ? Number(form.age) : undefined,
+      avatar_url: form.avatar_url || undefined,
       country: form.country || undefined,
       city: form.city || undefined,
       relationship_status: (form.relationship_status as RelationshipStatus) || "",
@@ -310,6 +316,10 @@ export function ProfileContent({ profile, userId, userEmail }: Props) {
                 />
               </div>
               <div>
+                <FieldLabel htmlFor="age">Age</FieldLabel>
+                <Input id="age" type="number" min={18} max={120} value={form.age} onChange={handleChange("age")} placeholder="18–120" className="w-full" />
+              </div>
+              <div>
                 <FieldLabel htmlFor="gender">Gender</FieldLabel>
                 <Select
                   id="gender"
@@ -406,6 +416,10 @@ export function ProfileContent({ profile, userId, userEmail }: Props) {
                 />
               </div>
               <div className="sm:col-span-2">
+                <FieldLabel htmlFor="avatar_url">Avatar URL</FieldLabel>
+                <Input id="avatar_url" type="url" value={form.avatar_url} onChange={handleChange("avatar_url")} placeholder="https://…" className="w-full" />
+              </div>
+              <div className="sm:col-span-2">
                 <FieldLabel htmlFor="bio">Bio</FieldLabel>
                 <Textarea
                   id="bio"
@@ -458,7 +472,7 @@ export function ProfileContent({ profile, userId, userEmail }: Props) {
               />
               <FieldDisplay
                 label="Gender"
-                value={labelFor(GENDER_OPTIONS, profile.gender)}
+                value={labelFor(GENDER_OPTIONS, profile.gender ?? null)}
               />
             </div>
           </div>

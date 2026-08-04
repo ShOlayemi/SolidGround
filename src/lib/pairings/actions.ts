@@ -410,12 +410,14 @@ export async function getPairingResults(
   const serviceClientForPairingProfiles = await createServiceClient();
   const { data: profiles } = await serviceClientForPairingProfiles
     .from("profiles")
-    .select("id, display_name, full_name")
+    .select("id, display_name, full_name, avatar_url")
     .in("id", userIds);
 
   const profileMap = new Map<string, string>();
+  const avatarMap = new Map<string, string | null>();
   for (const p of profiles ?? []) {
     profileMap.set(p.id, p.display_name ?? p.full_name ?? "Unknown");
+    avatarMap.set(p.id, p.avatar_url ?? null);
   }
 
   const result: PairingWithNames = {
@@ -423,11 +425,13 @@ export async function getPairingResults(
     invite_code: pairing.invite_code,
     inviter_user_id: pairing.inviter_user_id,
     inviter_name: profileMap.get(pairing.inviter_user_id) ?? "Unknown",
+    inviter_avatar_url: avatarMap.get(pairing.inviter_user_id) ?? null,
     inviter_session_id: pairing.inviter_session_id,
     invitee_user_id: pairing.invitee_user_id,
     invitee_name: pairing.invitee_user_id
       ? (profileMap.get(pairing.invitee_user_id) ?? "Unknown")
       : null,
+    invitee_avatar_url: pairing.invitee_user_id ? (avatarMap.get(pairing.invitee_user_id) ?? null) : null,
     invitee_session_id: pairing.invitee_session_id,
     status: pairing.status,
     alignment_results: pairing.alignment_results ?? null,

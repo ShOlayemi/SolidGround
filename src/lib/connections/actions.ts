@@ -21,7 +21,7 @@ async function latestResults(client: Awaited<ReturnType<typeof createServiceClie
   return { sessionId: data.session_id, userId: data.user_id, categoryResults: data.category_results, overallScore: data.overall_score, overallConfidence: data.overall_confidence, completedAt: data.updated_at ?? data.created_at } as BlueprintResults;
 }
 
-export type DiscoverUser = { id: string; display_name: string; full_name: string; relationship_status: string | null; bio: string | null; hasPending: boolean; incomingPending: boolean };
+export type DiscoverUser = { id: string; display_name: string; full_name: string; relationship_status: string | null; gender: "male" | "female" | "other" | null; age: number | null; avatar_url: string | null; bio: string | null; hasPending: boolean; incomingPending: boolean };
 export async function discoverUsers(query = "", page = 0): Promise<Result<{ users: DiscoverUser[]; hasMore: boolean }>> {
   const a = await auth(); if (!a) return { success: false, users: [], hasMore: false, error: "Not authenticated." };
   const service = await createServiceClient();
@@ -31,7 +31,7 @@ export async function discoverUsers(query = "", page = 0): Promise<Result<{ user
   const { data: pairings } = await service.from("pairings").select("inviter_user_id,invitee_user_id").or(`inviter_user_id.eq.${a.userId},invitee_user_id.eq.${a.userId}`);
   const paired = new Set((pairings ?? []).flatMap((p) => [p.inviter_user_id, p.invitee_user_id]).filter(Boolean));
   const eligible = ids.filter((id) => !paired.has(id));
-  const { data: profiles } = await service.from("profiles").select("id,display_name,full_name,relationship_status,bio").in("id", eligible);
+  const { data: profiles } = await service.from("profiles").select("id,display_name,full_name,relationship_status,gender,age,avatar_url,bio").in("id", eligible);
   const { data: requests } = await service.from("connection_requests").select("from_user_id,to_user_id").eq("status", "pending").or(`from_user_id.eq.${a.userId},to_user_id.eq.${a.userId}`);
   const reqs = requests ?? [];
   const term = query.trim().toLowerCase();

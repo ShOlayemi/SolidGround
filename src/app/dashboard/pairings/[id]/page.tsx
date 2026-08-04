@@ -112,6 +112,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
 
   const alignment = pairing.alignment_results;
   const partnerName = pairing.invitee_name ?? pairing.inviter_name;
+  const partnerAvatarUrl = isInviter ? pairing.invitee_avatar_url : pairing.inviter_avatar_url;
 
   // Determine whose results are whose: current user is either inviter or invitee
   // For display, we show "You" on the left and partner on the right
@@ -121,9 +122,14 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
     <div className="max-w-[960px] mx-auto py-8 md:py-10 px-4">
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="text-center mb-14">
-        <h1 className="text-[24px] md:text-[32px] leading-[1.15] font-semibold tracking-tight text-solid-text mb-2">
-          You &amp; {partnerName}
-        </h1>
+        <div className="mb-2 flex items-center justify-center gap-3">
+          <div className="h-10 w-10 overflow-hidden rounded-full bg-accent-100 text-center text-lg font-semibold leading-10 text-accent-700">
+            {partnerAvatarUrl ? <img src={partnerAvatarUrl} alt={`${partnerName}'s profile`} className="h-full w-full object-cover" /> : partnerName.trim().charAt(0).toUpperCase()}
+          </div>
+          <h1 className="text-[24px] md:text-[32px] leading-[1.15] font-semibold tracking-tight text-solid-text">
+            You &amp; {partnerName}
+          </h1>
+        </div>
         <p className="text-[15px] text-solid-text-secondary mb-10">
           Alignment Match™
         </p>

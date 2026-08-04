@@ -10,12 +10,7 @@ import type {
   EducationLevel,
 } from "@/types";
 
-const VALID_GENDERS: Gender[] = [
-  "male",
-  "female",
-  "non_binary",
-  "prefer_not_to_say",
-];
+const VALID_GENDERS: Gender[] = ["male", "female", "other"];
 const VALID_RELATIONSHIP_STATUSES: RelationshipStatus[] = [
   "single",
   "dating",
@@ -145,6 +140,11 @@ export async function updateProfile(
     }
   }
 
+  // Validate age if provided
+  if (payload.age !== undefined && payload.age !== null && (!Number.isInteger(payload.age) || payload.age < 18 || payload.age > 120)) {
+    return { success: false, error: "Age must be between 18 and 120." };
+  }
+
   // Validate bio length
   if (payload.bio && payload.bio.length > 500) {
     return {
@@ -168,6 +168,8 @@ export async function updateProfile(
     "education",
     "occupation",
     "bio",
+    "age",
+    "avatar_url",
   ];
 
   for (const field of optionalFields) {

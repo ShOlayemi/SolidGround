@@ -106,7 +106,7 @@ export function Sidebar({ userEmail, userName, pendingRequestCount = 0 }: Sideba
         className={clsx(
           "fixed inset-y-0 left-0 z-40 flex flex-col bg-sidebar-bg",
           "transition-[width] duration-200 ease-out",
-          "w-60 md:w-16 lg:w-60",
+          "w-60",
           // Mobile: off-screen by default, slide in when open
           "-translate-x-full max-md:fixed",
           mobileOpen && "translate-x-0",

@@ -2,7 +2,7 @@ import clsx from "clsx";
 import type { ComponentPropsWithoutRef } from "react";
 
 type InputProps = Omit<ComponentPropsWithoutRef<"input">, "type"> & {
-  type?: "email" | "text" | "password" | "date";
+  type?: "email" | "text" | "password" | "date" | "number" | "url";
   error?: string;
   variant?: "light" | "dark";
 };
