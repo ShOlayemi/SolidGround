@@ -5,6 +5,7 @@
 // ──────────────────────────────────────────────────────────────
 
 import type { CategoryResult } from "@/lib/scoring/types";
+import type { AssessmentCategory } from "@/types";
 import { CATEGORY_DESCRIPTIONS } from "@/lib/assessment/questions";
 
 interface CategoryCardProps {
@@ -30,7 +31,7 @@ export function CategoryCard({ result }: CategoryCardProps) {
           <h3 className="text-[15px] font-semibold text-solid-text leading-snug">
             {label}
           </h3>
-          <p className="text-[12px] text-solid-text-secondary mt-1">{CATEGORY_DESCRIPTIONS[result.category]}</p>
+          <p className="text-[12px] text-solid-text-secondary mt-1">{CATEGORY_DESCRIPTIONS[result.category as AssessmentCategory]}</p>
           <p className="text-[12px] text-solid-text-tertiary mt-0.5">
             {result.questionsAnswered ?? questionCount}/{result.totalQuestions ?? questionCount} answered · {confidence}% consistency
           </p>
