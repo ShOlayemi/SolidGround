@@ -60,7 +60,7 @@ export function buildInsightsPrompt(results: BlueprintResults): string {
   const categoryLines = categoryResults
     .map(
       (cr) =>
-        `- ${cr.label}: ${cr.score}/100 (confidence: ${cr.confidence}%)` +
+        `- ${cr.label}: ${cr.score}/100 (consistency: ${cr.confidence}%)` +
         (cr.dealBreakerTriggered ? " ⚠️ DEAL-BREAKER TRIGGERED" : ""),
     )
     .join("\n");
@@ -152,7 +152,7 @@ Analyze the data above and return a JSON object with the following shape. Every 
   "communicationRecommendations": ["3 communication tips that relate to the user's specific communication score and patterns in their data."],
   "relationshipReadiness": {
     "level": "High|Moderate|Developing",
-    "summary": "1-2 sentence summary of readiness based on the data.",
+    "summary": "1-2 sentence summary based on the score bands: 70–100 Strong readiness, 45–69 Developing readiness, 0–44 Needs Attention.",
     "strengths": ["2 readiness strengths drawn from the data"],
     "areas_to_develop": ["2 areas to consider developing, drawn from the data"]
   }

@@ -103,10 +103,12 @@ export function scoreCategory(
   const questionScores: Record<string, number> = {};
   const scores: number[] = [];
   let dealBreakerTriggered = false;
+  let questionsAnswered = 0;
 
   for (const q of questions) {
     const config = configs.get(q.id);
     const rawAnswer = answers.get(q.id);
+    if (rawAnswer !== undefined) questionsAnswered++;
 
     // Score the question (missing answer → 50, neutral)
     const score =
@@ -139,9 +141,9 @@ export function scoreCategory(
     categoryScore = Math.round(clamp(avg, 0, 100));
   }
 
-  // Confidence = 100 - (stdDev * 10), clamped [0, 100]
+  // Consistency = 100 - (stdDev * 5), clamped [0, 100]
   const stdDev = standardDeviation(scores);
-  const confidence = Math.round(clamp(100 - stdDev * 10, 0, 100));
+  const confidence = Math.round(clamp(100 - stdDev * 5, 0, 100));
 
   // Strengths: question IDs where score >= 75
   const strengths = Object.entries(questionScores)
@@ -158,6 +160,8 @@ export function scoreCategory(
     label,
     score: categoryScore,
     confidence,
+    questionsAnswered,
+    totalQuestions: questions.length,
     strengths,
     growthAreas,
     dealBreakerTriggered,

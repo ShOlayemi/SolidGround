@@ -8,7 +8,7 @@ interface CategoryBarProps {
   onRetry?: () => void;
 }
 
-function scoreColor(score: number) { return score >= 70 ? "var(--color-score-high)" : score >= 40 ? "var(--color-score-mid)" : "var(--color-score-low)"; }
+function scoreColor(score: number) { return score >= 70 ? "var(--color-score-high)" : score >= 45 ? "var(--color-score-mid)" : "var(--color-score-low)"; }
 
 export function CategoryBar({ label, score, className = "", loading, error, empty, onRetry }: CategoryBarProps) {
   if (loading) return <div className={`animate-pulse space-y-2 ${className}`}><div className="h-4 w-1/3 rounded bg-slate-200" /><div className="h-2.5 w-full rounded-full bg-slate-200" /></div>;

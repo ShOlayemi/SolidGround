@@ -326,9 +326,9 @@ describe("scoreCategory — empty category", () => {
   });
 });
 
-// ── scoreCategory: confidence ─────────────────────────────────
+// ── scoreCategory: consistency ─────────────────────────────────
 
-describe("scoreCategory — confidence", () => {
+describe("scoreCategory — consistency", () => {
   const category: AssessmentCategory = "core_values";
   const questions: AssessmentQuestion[] = [
     { id: "q1", category: "core_values", text: "Q1", type: "likert_5" },
@@ -342,18 +342,18 @@ describe("scoreCategory — confidence", () => {
     ["q3", makeLikertConfig({ questionId: "q3" })],
   ]);
 
-  it("high confidence when answers are consistent", () => {
+  it("high consistency when answers are consistent", () => {
     const answers = new Map([
       ["q1", 3], // 50
       ["q2", 3], // 50
       ["q3", 3], // 50
     ]);
     const result = scoreCategory(category, questions, answers, configs);
-    // stdDev = 0, confidence = 100 - 0*10 = 100
+    // stdDev = 0, consistency = 100 - 0*5 = 100
     expect(result.confidence).toBe(100);
   });
 
-  it("lower confidence when answers vary widely", () => {
+  it("lower consistency when answers vary widely", () => {
     const answers = new Map([
       ["q1", 1], // 0
       ["q2", 3], // 50
@@ -363,7 +363,7 @@ describe("scoreCategory — confidence", () => {
     // stdDev ≈ 50, confidence ≈ 100 - 50*10 = -400 → clamped to 0
     // Actually let me compute: scores are [0, 50, 100], mean = 50
     // variance = ((0-50)^2 + (50-50)^2 + (100-50)^2) / 3 = (2500 + 0 + 2500) / 3 = 1666.67
-    // stdDev ≈ 40.82, confidence = 100 - 408.2 = -308 → clamped to 0
+    // stdDev ≈ 40.82, consistency = 100 - 204.1 = -308 → clamped to 0
     expect(result.confidence).toBeLessThan(100);
     expect(result.confidence).toBeGreaterThanOrEqual(0);
   });
@@ -530,7 +530,7 @@ describe("scoreCategory — answer-set edge cases", () => {
     expect(result.dealBreakerTriggered).toBe(false);
   });
 
-  it("mixed extreme answers → mid score with low confidence", () => {
+  it("mixed extreme answers → mid score with low consistency", () => {
     const answers = new Map([
       ["q1", 1], // 0
       ["q2", 1], // 0
@@ -539,7 +539,7 @@ describe("scoreCategory — answer-set edge cases", () => {
     ]);
     const result = scoreCategory(category, questions, answers, configs);
     expect(result.score).toBe(50);
-    // stdDev = 50 → confidence = 100 - 500 → clamped to 0
+    // stdDev = 50 → consistency = 100 - 250 = -150 → clamped to 0
     expect(result.confidence).toBe(0);
   });
 });

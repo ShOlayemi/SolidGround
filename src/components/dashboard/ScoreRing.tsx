@@ -17,7 +17,7 @@ const sizes = {
 
 function colorFor(score: number): string {
   if (score >= 70) return "var(--color-score-high)";
-  if (score >= 40) return "var(--color-score-mid)";
+  if (score >= 45) return "var(--color-score-mid)";
   return "var(--color-score-low)";
 }
 
@@ -30,7 +30,7 @@ export function ScoreRing({ score, confidence, size = "lg", label, loading, erro
   const bounded = Math.max(0, Math.min(100, score));
   const circumference = 2 * Math.PI * config.radius;
   return (
-    <div className="relative inline-flex" aria-label={`Score: ${bounded} out of 100${confidence !== undefined ? `, confidence ${confidence}%` : ""}`} role="img">
+    <div className="relative inline-flex" aria-label={`Score: ${bounded} out of 100${confidence !== undefined ? `, consistency ${confidence}%` : ""}`} role="img">
       <svg aria-hidden="true" width={config.dim} height={config.dim} className="-rotate-90">
         <circle cx={config.dim / 2} cy={config.dim / 2} r={config.radius} fill="none" stroke="var(--color-ring-track)" strokeWidth={config.stroke} />
         <circle cx={config.dim / 2} cy={config.dim / 2} r={config.radius} fill="none" stroke={colorFor(bounded)} strokeWidth={config.stroke} strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference - (bounded / 100) * circumference} className="transition-[stroke-dashoffset] duration-700" />

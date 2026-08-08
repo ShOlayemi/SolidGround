@@ -7,6 +7,17 @@
 
 import type { QuestionScoringConfig } from "./types";
 
+/** Shared score bands used by the UI and AI readiness summaries. */
+export const SCORE_BANDS = [
+  { min: 70, max: 100, label: "Strong", description: "Well-aligned and compatible." },
+  { min: 45, max: 69, label: "Developing", description: "Some alignment, with areas to discuss." },
+  { min: 0, max: 44, label: "Needs Attention", description: "Significant differences to explore." },
+] as const;
+
+export function getScoreBand(score: number) {
+  return SCORE_BANDS.find((band) => score >= band.min && score <= band.max) ?? SCORE_BANDS[2];
+}
+
 export const SCORING_CONFIG: QuestionScoringConfig[] = [
   // ── Core Values (8) ───────────────────────────────────────
   {

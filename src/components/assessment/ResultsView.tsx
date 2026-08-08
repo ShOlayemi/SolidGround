@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { createInvite } from "@/lib/pairings/actions";
 import { trackEvent } from "@/lib/analytics/events";
 import { AIInsightsSection } from "./AIInsightsSection";
+import { SCORE_BANDS } from "@/lib/scoring/scoring-config";
 
 interface ResultsViewProps {
   results: BlueprintResults;
@@ -62,7 +63,7 @@ function buildQuestionScoreList(
 
 function scoreColor(score: number): string {
   if (score >= 70) return "#2E4A3A";
-  if (score >= 40) return "#C4943A";
+  if (score >= 45) return "#C4943A";
   return "#C44E4E";
 }
 
@@ -114,6 +115,10 @@ export function ResultsView({ results, sessionId, pairings, insights }: ResultsV
             <CategoryCard key={cr.category} result={cr} />
           ))}
         </div>
+        <details className="mt-5 rounded-xl border border-solid-border bg-solid-surface px-5 py-4 text-sm text-solid-text-secondary">
+          <summary className="cursor-pointer font-medium text-solid-text">What do these scores mean?</summary>
+          <div className="mt-3 space-y-2">{SCORE_BANDS.map((band) => <p key={band.label}><strong className="text-solid-text">{band.min}–{band.max}: {band.label}</strong> — {band.description}</p>)}</div>
+        </details>
       </section>
 
       {/* ── Strengths Section ─────────────────────────────── */}
