@@ -24,11 +24,15 @@ export default async function ChatPage() {
     );
   }
 
-  const activePairings = (pairingsResult.pairings ?? []).filter(
-    (pairing) => pairing.status === "active",
+  // Accepted pairings may be represented as "accepted", "active", or
+  // "completed" depending on which stage of the pairing flow created them.
+  // All three statuses represent a connected partner; only pending pairings
+  // should be excluded from chat targets.
+  const connectedPairings = (pairingsResult.pairings ?? []).filter(
+    (pairing) => ["accepted", "active", "completed"].includes(pairing.status),
   );
   const userName = profile?.display_name ?? profile?.full_name ?? session.user.email?.split("@")[0] ?? "You";
-  const partners: ChatPartner[] = activePairings.map((pairing) => {
+  const partners: ChatPartner[] = connectedPairings.map((pairing) => {
     const isInviter = pairing.inviter_user_id === session.user.id;
     const name = isInviter ? pairing.invitee_name ?? "Partner" : pairing.inviter_name;
     const avatarUrl = isInviter ? pairing.invitee_avatar_url : pairing.inviter_avatar_url;
