@@ -3,6 +3,9 @@
 interface AssessmentProgressBarProps {
   currentQuestion: number;
   totalQuestions: number;
+  categoryLabel?: string;
+  categoryQuestion?: number;
+  categoryTotal?: number;
   percentage: number;
 }
 
@@ -10,13 +13,16 @@ export function AssessmentProgressBar({
   currentQuestion,
   totalQuestions,
   percentage,
+  categoryLabel,
+  categoryQuestion,
+  categoryTotal,
 }: AssessmentProgressBarProps) {
   return (
     <div className="w-full">
       {/* Label */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-[13px] text-solid-text-secondary">
-          Question {currentQuestion} of {totalQuestions}
+          {categoryLabel ? `${categoryLabel} · Q${categoryQuestion} of ${categoryTotal}` : `Question ${currentQuestion} of ${totalQuestions}`}
         </span>
         <span className="text-[13px] font-medium text-solid-text-secondary tabular-nums">
           {percentage}% complete

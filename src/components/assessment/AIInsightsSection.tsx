@@ -10,15 +10,18 @@
 import { useState, useCallback } from "react";
 import type { AIInsights } from "@/types";
 import { getAIInsights } from "@/lib/ai/actions";
+import { UpgradePrompt } from "@/components/billing/UpgradePrompt";
 
 interface AIInsightsSectionProps {
   sessionId: string;
   initialInsights: AIInsights | null;
+  canGenerate?: boolean;
 }
 
 export function AIInsightsSection({
   sessionId,
   initialInsights,
+  canGenerate = true,
 }: AIInsightsSectionProps) {
   const [insights, setInsights] = useState<AIInsights | null>(initialInsights);
   const [loading, setLoading] = useState(false);
@@ -62,6 +65,7 @@ export function AIInsightsSection({
 
   // ── No insights yet ────────────────────────────────────────
   if (!insights) {
+    if (!canGenerate) return <section className="mb-16"><UpgradePrompt feature="AI Insights" message="Unlock personalized analysis of your Blueprint results with Premium." /></section>;
     return (
       <section className="mb-16 bg-solid-surface border border-solid-border rounded-2xl p-8 md:p-10 text-center">
         <h2 className="text-[22px] font-semibold tracking-tight text-solid-text mb-3">
@@ -84,8 +88,7 @@ export function AIInsightsSection({
           <p className="text-[13px] text-solid-error mt-4">{error}</p>
         )}
         <p className="text-[12px] text-solid-text-tertiary mt-4">
-          Insights are generated once and cached — generating again won&apos;t
-          incur additional API costs.
+          Generated from your Blueprint results. Regenerating will produce a fresh analysis.
         </p>
       </section>
     );
@@ -121,7 +124,7 @@ export function AIInsightsSection({
           <ul className="space-y-3">
             {insights.personalStrengths.map((s, i) => (
               <li key={i} className="flex items-start gap-3">
-                <span className="shrink-0 mt-0.5 text-[#2E4A3A]">
+                <span className="shrink-0 mt-0.5 text-[var(--color-score-strong)]">
                   <CheckIcon />
                 </span>
                 <span className="text-[15px] text-solid-text-secondary leading-relaxed">
@@ -141,7 +144,7 @@ export function AIInsightsSection({
           <ul className="space-y-3">
             {insights.growthOpportunities.map((g, i) => (
               <li key={i} className="flex items-start gap-3">
-                <span className="shrink-0 mt-0.5 text-[#C4943A]">
+                <span className="shrink-0 mt-0.5 text-[var(--color-score-developing)]">
                   <LeafIcon />
                 </span>
                 <span className="text-[15px] text-solid-text-secondary leading-relaxed">
@@ -206,18 +209,18 @@ export function AIInsightsSection({
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-medium ${
                   readinessLevel === "High"
-                    ? "bg-[#2E4A3A]/10 text-[#2E4A3A]"
+                    ? "bg-[var(--color-score-strong)]/10 text-[var(--color-score-strong)]"
                     : readinessLevel === "Moderate"
-                      ? "bg-[#C4943A]/10 text-[#C4943A]"
+                      ? "bg-[var(--color-score-developing)]/10 text-[var(--color-score-developing)]"
                       : "bg-solid-accent-subtle text-solid-accent"
                 }`}
               >
                 <span
                   className={`w-2 h-2 rounded-full ${
                     readinessLevel === "High"
-                      ? "bg-[#2E4A3A]"
+                      ? "bg-[var(--color-score-strong)]"
                       : readinessLevel === "Moderate"
-                        ? "bg-[#C4943A]"
+                        ? "bg-[var(--color-score-developing)]"
                         : "bg-solid-accent"
                   }`}
                 />
@@ -230,7 +233,7 @@ export function AIInsightsSection({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <div className="bg-solid-bg border border-solid-border rounded-lg p-4">
-                <h4 className="text-[13px] font-semibold text-[#2E4A3A] mb-2">
+                <h4 className="text-[13px] font-semibold text-[var(--color-score-strong)] mb-2">
                   Strengths
                 </h4>
                 <ul className="space-y-1.5">
@@ -239,7 +242,7 @@ export function AIInsightsSection({
                       key={i}
                       className="text-[14px] text-solid-text-secondary flex items-start gap-2"
                     >
-                      <span className="text-[#2E4A3A] shrink-0 mt-0.5">
+                      <span className="text-[var(--color-score-strong)] shrink-0 mt-0.5">
                         <CheckIcon small />
                       </span>
                       {s}
@@ -248,7 +251,7 @@ export function AIInsightsSection({
                 </ul>
               </div>
               <div className="bg-solid-bg border border-solid-border rounded-lg p-4">
-                <h4 className="text-[13px] font-semibold text-[#C4943A] mb-2">
+                <h4 className="text-[13px] font-semibold text-[var(--color-score-developing)] mb-2">
                   Areas to Develop
                 </h4>
                 <ul className="space-y-1.5">
@@ -258,7 +261,7 @@ export function AIInsightsSection({
                         key={i}
                         className="text-[14px] text-solid-text-secondary flex items-start gap-2"
                       >
-                        <span className="text-[#C4943A] shrink-0 mt-0.5">
+                        <span className="text-[var(--color-score-developing)] shrink-0 mt-0.5">
                           <ArrowIcon />
                         </span>
                         {a}

@@ -22,6 +22,21 @@ export const CATEGORY_ORDER: AssessmentCategory[] = [
   "long_term_vision",
 ];
 
+export const CATEGORY_DESCRIPTIONS: Record<AssessmentCategory, string> = {
+  core_values: "Honesty, integrity, loyalty, and the principles that guide your life",
+  communication: "How you express needs, handle conflict, and build emotional connection",
+  lifestyle: "Daily rhythms, social preferences, and how you shape your environment",
+  money: "Spending habits, saving, and what financial security means to you",
+  career: "Work-life balance, ambition, and your professional identity",
+  family: "Extended family relationships, boundaries, and involvement",
+  children: "Your views on having, raising, and parenting children",
+  conflict_resolution: "How you navigate disagreements and repair after arguments",
+  health_wellness: "Physical fitness, mental health, and overall well-being priorities",
+  personal_growth: "Self-improvement, learning, and evolving as individuals — and together",
+  social_life: "Friendships, solitude, and how you spend your social energy",
+  long_term_vision: "Life goals, retirement, and the future you're building toward",
+};
+
 export const CATEGORY_LABELS: Record<AssessmentCategory, string> = {
   core_values: "Core Values",
   communication: "Communication",

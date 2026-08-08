@@ -130,8 +130,11 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const categoryAdvanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const answersRef = useRef(answers);
   answersRef.current = answers;
 
@@ -186,9 +189,12 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
         );
         if (!result.success) {
           setSaveError(result.error ?? "Failed to save");
+        } else {
+          setJustSaved(true);
+          if (savedLabelTimeoutRef.current) clearTimeout(savedLabelTimeoutRef.current);
+          savedLabelTimeoutRef.current = setTimeout(() => setJustSaved(false), 2000);
         }
-      } catch {
-        setSaveError("Network error. Your answer will be saved when you continue.");
+      } catch {("Network error. Your answer will be saved when you continue.");
       } finally {
         setIsSaving(false);
       }
@@ -246,7 +252,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
         if (isLastInCategory && !isLastOverall) {
           setWizardState("category_complete");
           // Auto-advance after 2 seconds
-          setTimeout(() => {
+          categoryAdvanceTimeoutRef.current = setTimeout(() => {
             setCurrentIndex((prev) => prev + 1);
             setWizardState("answering");
           }, 2000);
@@ -271,6 +277,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
 
   const handleSelectCategory = useCallback(
     (cat: AssessmentCategory) => {
+      if (categoryAdvanceTimeoutRef.current) { clearTimeout(categoryAdvanceTimeoutRef.current); categoryAdvanceTimeoutRef.current = null; }
       const catStart = findCategoryStartFlatIndex(cat);
       const unansweredOffset = findFirstUnansweredInCategory(cat, answers);
       const qs = getQuestionsByCategory(cat);
@@ -350,6 +357,10 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (wizardState !== "answering") return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      if (/^[1-5]$/.test(e.key)) { handleAnswerChange(Number(e.key)); return; }
+      if (e.key === "Enter") { e.preventDefault(); if (answers.get(currentQuestion.id) != null) saveCurrentAndNavigate("next"); return; }
       if (e.key === "ArrowLeft" || (e.key === "ArrowUp" && e.metaKey)) {
         e.preventDefault();
         if (currentIndex > 0) {
@@ -360,7 +371,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [wizardState, currentIndex, saveCurrentAndNavigate]);
+  }, [wizardState, currentIndex, saveCurrentAndNavigate, handleAnswerChange, answers, currentQuestion.id]);
 
   /* ── Category complete interstitial ────────────────────── */
 
@@ -473,6 +484,9 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
         <AssessmentProgressBar
           currentQuestion={currentIndex + 1}
           totalQuestions={totalQuestions}
+          categoryLabel={CATEGORY_LABELS[currentQuestion.category]}
+          categoryQuestion={currentCatQuestionIndex}
+          categoryTotal={currentCatTotal}
           percentage={percentage}
         />
       </div>
@@ -533,9 +547,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
 
             {/* Save indicator */}
             <p className="text-[12px] text-solid-text-tertiary text-center mt-4">
-              {isSaving
-                ? "Saving…"
-                : "Your answers are saved automatically"}
+              {isSaving ? "Saving…" : justSaved ? "Saved ✓" : "Your answers are saved automatically"}
             </p>
           </div>
         </div>
