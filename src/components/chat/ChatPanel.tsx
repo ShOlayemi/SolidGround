@@ -8,6 +8,37 @@ import type { PairingMessage } from "@/types";
 
 interface ChatPanelProps { pairingId: string; userName: string }
 
+function isSameDay(first: Date, second: Date): boolean {
+  return first.getFullYear() === second.getFullYear()
+    && first.getMonth() === second.getMonth()
+    && first.getDate() === second.getDate();
+}
+
+function formatDateDivider(timestamp: string): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "Earlier";
+
+  const today = new Date();
+  if (isSameDay(date, today)) return "Today";
+
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (isSameDay(date, yesterday)) return "Yesterday";
+
+  return date.toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric",
+  });
+}
+
+function formatMessageTime(timestamp: string): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
 export function ChatPanel({ pairingId, userName }: ChatPanelProps) {
   const [messages, setMessages] = useState<PairingMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,9 +111,16 @@ export function ChatPanel({ pairingId, userName }: ChatPanelProps) {
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center"><p className="text-sm text-red-600">Unable to load messages</p><button type="button" onClick={() => void loadMessages(true)} className="text-sm font-medium text-solid-accent underline">Try again</button></div>
         ) : messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center"><div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-solid-bg text-solid-text-tertiary"><MessageCircle size={22} /></div><p className="text-sm font-medium text-solid-text">Start a conversation about your results</p><p className="mt-1 text-xs text-solid-text-tertiary">Share a thought or ask a question about your Alignment Match™.</p></div>
-        ) : messages.map((message) => {
+        ) : messages.map((message, index) => {
           const mine = message.isCurrentUser ?? message.senderName === userName;
-          return <div key={message.id} className={`mb-4 flex ${mine ? "justify-end" : "justify-start"}`}><div className={`max-w-[80%] rounded-2xl px-4 py-3 ${mine ? "rounded-br-md bg-solid-accent text-white" : "rounded-bl-md bg-slate-100 text-solid-text"}`}><p className={`mb-1 text-[11px] font-semibold ${mine ? "text-white/70" : "text-solid-text-tertiary"}`}>{mine ? userName : message.senderName ?? "Partner"}</p><p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p><time className={`mt-1 block text-[10px] ${mine ? "text-white/60" : "text-solid-text-tertiary"}`} dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time></div></div>;
+          const messageDate = new Date(message.createdAt);
+          const previousMessage = messages[index - 1];
+          const previousDate = previousMessage ? new Date(previousMessage.createdAt) : null;
+          const showDateDivider = index === 0 || !previousDate || Number.isNaN(messageDate.getTime()) || Number.isNaN(previousDate.getTime()) || !isSameDay(messageDate, previousDate);
+          return <div key={message.id}>
+            {showDateDivider ? <div className="my-5 flex items-center gap-3 first:mt-0" role="separator"><div className="h-px flex-1 bg-solid-border" /><span className="text-[11px] font-medium text-solid-text-tertiary">{formatDateDivider(message.createdAt)}</span><div className="h-px flex-1 bg-solid-border" /></div> : null}
+            <div className={`mb-4 flex ${mine ? "justify-end" : "justify-start"}`}><div className={`max-w-[80%] rounded-2xl px-4 py-3 ${mine ? "rounded-br-md bg-solid-accent text-white" : "rounded-bl-md bg-slate-100 text-solid-text"}`}><p className={`mb-1 text-[11px] font-semibold ${mine ? "text-white/70" : "text-solid-text-tertiary"}`}>{mine ? userName : message.senderName ?? "Partner"}</p><p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p><time className={`mt-1 block text-[10px] ${mine ? "text-white/60" : "text-solid-text-tertiary"}`} dateTime={message.createdAt}>{formatMessageTime(message.createdAt)}</time></div></div>
+          </div>;
         })}
         <div ref={bottomRef} />
       </div>
