@@ -12,13 +12,12 @@ interface CategoryCardProps {
 
 function scoreColor(score: number): string {
   if (score >= 70) return "#2E4A3A";
-  if (score >= 40) return "#C4943A";
+  if (score >= 45) return "#C4943A";
   return "#C44E4E";
 }
 
 export function CategoryCard({ result }: CategoryCardProps) {
-  const { label, score, confidence, dealBreakerTriggered, questionScores } =
-    result;
+  const { label, score, confidence, dealBreakerTriggered, questionScores } = result;
   const questionCount = Object.keys(questionScores).length;
   const color = scoreColor(score);
 
@@ -31,8 +30,7 @@ export function CategoryCard({ result }: CategoryCardProps) {
             {label}
           </h3>
           <p className="text-[12px] text-solid-text-tertiary mt-0.5">
-            {questionCount} question{questionCount !== 1 ? "s" : ""} ·{" "}
-            {confidence}% confidence
+            {result.questionsAnswered ?? questionCount}/{result.totalQuestions ?? questionCount} answered · {confidence}% consistency
           </p>
         </div>
         <span

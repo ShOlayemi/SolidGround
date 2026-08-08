@@ -25,7 +25,9 @@ export interface CategoryResult {
   category: string;
   label: string;
   score: number; // 0–100
-  confidence: number; // 0–100
+  confidence: number; // consistency score, 0–100
+  questionsAnswered?: number;
+  totalQuestions?: number;
   strengths: string[]; // Question IDs where score >= 75
   growthAreas: string[]; // Question IDs where score <= 35
   dealBreakerTriggered: boolean;
