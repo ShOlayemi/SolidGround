@@ -111,8 +111,17 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
   }
 
   const alignment = pairing.alignment_results;
-  const partnerName = pairing.invitee_name ?? pairing.inviter_name;
+  // The signed-in user is always "You"; the other party is "Partner".
+  // `isInviter` tells us which side the viewer sits on, so we resolve the
+  // display names/scores relative to the viewer (previously the invitee was
+  // unconditionally treated as "Partner", swapping the labels for invitees).
+  const partnerName = isInviter
+    ? (pairing.invitee_name ?? pairing.inviter_name ?? "Partner")
+    : (pairing.inviter_name ?? pairing.invitee_name ?? "Partner");
   const partnerAvatarUrl = isInviter ? pairing.invitee_avatar_url : pairing.inviter_avatar_url;
+  const currentUserName = isInviter
+    ? pairing.inviter_name
+    : (pairing.invitee_name ?? pairing.inviter_name);
 
   // Determine whose results are whose: current user is either inviter or invitee
   // For display, we show "You" on the left and partner on the right
@@ -159,7 +168,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
         <div className="space-y-3">
           <CategoryGridHeader />
           {alignment.categoryAlignments.map((ca) => (
-            <CategoryComparisonRow key={ca.categoryId} alignment={ca} />
+            <CategoryComparisonRow key={ca.categoryId} alignment={ca} viewerIsInviter={isInviter} />
           ))}
         </div>
       </section>
@@ -192,7 +201,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
         </section>
       )}
 
-      {report ? <EnhancedSections report={report} /> : <div className="mb-10 rounded-xl border border-[#C4943A]/30 bg-[#C4943A]/[0.06] px-4 py-3 text-sm text-solid-text-secondary">Enhanced report not yet generated. Ask your partner to refresh.</div>}
+      {report ? <EnhancedSections report={report} viewerIsInviter={isInviter} /> : <div className="mb-10 rounded-xl border border-[#C4943A]/30 bg-[#C4943A]/[0.06] px-4 py-3 text-sm text-solid-text-secondary">Enhanced report not yet generated. Ask your partner to refresh.</div>}
 
       <div className="mb-10 flex justify-end">
         <RefreshReportButton pairingId={id} />
@@ -201,7 +210,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
       <section className="mb-10">
         <h2 className="mb-2 flex items-center gap-2 text-[20px] font-semibold tracking-tight text-solid-text"><MessageCircle size={20} /> Partner Chat</h2>
         <p className="mb-5 text-sm text-solid-text-secondary">Talk through your results together and turn insight into understanding.</p>
-        <ChatPanelLazy pairingId={id} userName={pairing.inviter_name} />
+        <ChatPanelLazy pairingId={id} userName={currentUserName} />
       </section>
 
       {/* ── Back ────────────────────────────────────────────── */}
@@ -241,12 +250,18 @@ function CategoryGridHeader() {
 
 function CategoryComparisonRow({
   alignment,
+  viewerIsInviter,
 }: {
   alignment: CategoryAlignment;
+  viewerIsInviter: boolean;
 }) {
   const { categoryName, inviterScore, inviteeScore, alignment: alignScore } =
     alignment;
   const color = alignmentColor(alignScore);
+  // Resolve scores relative to the signed-in viewer: "You" is always the
+  // current user's score, "Partner" is the other person's.
+  const youScore = viewerIsInviter ? inviterScore : inviteeScore;
+  const partnerScore = viewerIsInviter ? inviteeScore : inviterScore;
 
   return (
     <div className="bg-solid-surface border border-solid-border rounded-xl p-4 md:grid md:grid-cols-[1fr_80px_auto_80px] gap-3 items-center">
@@ -263,14 +278,14 @@ function CategoryComparisonRow({
           You:
         </span>
         <span className="text-[15px] font-semibold text-solid-text">
-          {inviterScore}
+          {youScore}
         </span>
         <div className="flex-1 md:w-full h-1.5 rounded-full bg-solid-border overflow-hidden">
           <div
             className="h-full rounded-full"
             style={{
-              width: `${Math.min(inviterScore, 100)}%`,
-              backgroundColor: alignmentColor(inviterScore),
+              width: `${Math.min(youScore, 100)}%`,
+              backgroundColor: alignmentColor(youScore),
             }}
           />
         </div>
@@ -294,14 +309,14 @@ function CategoryComparisonRow({
           Partner:
         </span>
         <span className="text-[15px] font-semibold text-solid-text">
-          {inviteeScore}
+          {partnerScore}
         </span>
         <div className="flex-1 md:w-full h-1.5 rounded-full bg-solid-border overflow-hidden">
           <div
             className="h-full rounded-full"
             style={{
-              width: `${Math.min(inviteeScore, 100)}%`,
-              backgroundColor: alignmentColor(inviteeScore),
+              width: `${Math.min(partnerScore, 100)}%`,
+              backgroundColor: alignmentColor(partnerScore),
             }}
           />
         </div>
@@ -406,7 +421,7 @@ function DivergentAreasList({
   );
 }
 
-function EnhancedSections({ report }: { report: ComparisonReport }) {
+function EnhancedSections({ report, viewerIsInviter }: { report: ComparisonReport; viewerIsInviter: boolean }) {
   return <div className="space-y-10 mb-10">
     <ReportSection title="Potential Conflicts" icon={<Swords size={19} />} description="Differences are opportunities for honest, constructive conversation.">
       {report.potentialConflicts.length ? report.potentialConflicts.map((item) => <ConflictCard key={`${item.categoryId}-${item.type}`} item={item} />) : <EmptyReport text="No significant conflicts detected — your values align well." />}
@@ -415,7 +430,7 @@ function EnhancedSections({ report }: { report: ComparisonReport }) {
       {report.conversationGuides.length ? report.conversationGuides.map((guide) => <article key={`${guide.categoryId}-${guide.topic}`} className="rounded-xl border border-solid-accent/15 bg-solid-accent/[0.05] p-5"><div className="flex items-start gap-3"><MessageCircle className="mt-0.5 shrink-0 text-solid-accent" size={18} /><div><p className="text-xs font-semibold uppercase tracking-wider text-solid-accent">{guide.categoryName}</p><h3 className="mt-1 font-semibold text-solid-text">{guide.topic}</h3><ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-solid-text-secondary">{guide.prompts.map((prompt) => <li key={prompt}>{prompt}</li>)}</ol></div></div></article>) : <EmptyReport text="No conversation guides available yet." />}
     </ReportSection>
     <ReportSection title="Growth Opportunities" icon={<Sprout size={19} />} description="See where you can grow together and learn from one another.">
-      {report.growthOpportunities.length ? <div className="grid gap-4 md:grid-cols-2">{report.growthOpportunities.map((item) => <GrowthCard key={`${item.categoryId}-${item.type}`} item={item} />)}</div> : <EmptyReport text="No major growth gaps — you're well-aligned across all categories." />}
+      {report.growthOpportunities.length ? <div className="grid gap-4 md:grid-cols-2">{report.growthOpportunities.map((item) => <GrowthCard key={`${item.categoryId}-${item.type}`} item={item} viewerIsInviter={viewerIsInviter} />)}</div> : <EmptyReport text="No major growth gaps — you're well-aligned across all categories." />}
     </ReportSection>
     <ReportSection title="Deal-Breaker Intersections" icon={<ShieldAlert size={19} />} description="Areas where a flagged boundary deserves careful attention.">
       {report.dealBreakerIntersections.length ? report.dealBreakerIntersections.map((item) => <article key={item.categoryId} className={`rounded-xl border p-5 ${item.bothTriggered ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}><div className="flex items-start gap-3"><ShieldAlert className={item.bothTriggered ? "text-red-600" : "text-amber-600"} size={19} /><div><p className="text-xs font-semibold uppercase tracking-wider text-solid-text-tertiary">{item.categoryName}</p><h3 className="mt-1 font-semibold text-solid-text">{item.bothTriggered ? "Both partners flagged" : "One partner flagged"}</h3><p className="mt-1 text-sm text-solid-text-secondary">Discuss this boundary openly before moving forward.</p></div></div></article>) : <EmptyReport text="No deal-breakers detected in your compatibility profile." />}
@@ -428,4 +443,4 @@ function ReportSection({ title, icon, description, children }: { title: string; 
 }
 function EmptyReport({ text }: { text: string }) { return <div className="rounded-xl border border-solid-border bg-solid-surface p-6 text-center text-sm text-solid-text-secondary">{text}</div>; }
 function ConflictCard({ item }: { item: ConflictItem }) { const tone = item.severity === "high" ? "red" : item.severity === "medium" ? "amber" : "slate"; return <article className={`rounded-xl border border-${tone}-200 bg-${tone}-50 p-5`}><div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-solid-text">{item.categoryName}</span><span className={`rounded-full bg-${tone}-100 px-2.5 py-1 text-xs font-semibold uppercase text-${tone}-700`}>{item.severity}</span><span className="text-xs text-solid-text-tertiary">{item.type.replaceAll("_", " ")}</span></div><p className="mt-3 text-sm leading-relaxed text-solid-text-secondary">{item.description}</p></article>; }
-function GrowthCard({ item }: { item: GrowthOpportunity }) { return <article className="rounded-xl border border-solid-border bg-solid-surface p-5"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-wider text-solid-text-tertiary">{item.categoryName}</p><span className="rounded-full bg-solid-bg px-2.5 py-1 text-xs font-medium text-solid-text-secondary">{item.type === "shared" ? "Shared growth" : "Complementary strength"}</span></div><p className="mt-3 text-sm leading-relaxed text-solid-text-secondary">{item.description}</p><div className="mt-4 flex gap-6 text-xs text-solid-text-tertiary"><span>You <strong className="text-solid-text">{item.inviterScore}</strong></span><span>Partner <strong className="text-solid-text">{item.inviteeScore}</strong></span></div></article>; }
+function GrowthCard({ item, viewerIsInviter }: { item: GrowthOpportunity; viewerIsInviter: boolean }) { const youScore = viewerIsInviter ? item.inviterScore : item.inviteeScore; const partnerScore = viewerIsInviter ? item.inviteeScore : item.inviterScore; return <article className="rounded-xl border border-solid-border bg-solid-surface p-5"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-wider text-solid-text-tertiary">{item.categoryName}</p><span className="rounded-full bg-solid-bg px-2.5 py-1 text-xs font-medium text-solid-text-secondary">{item.type === "shared" ? "Shared growth" : "Complementary strength"}</span></div><p className="mt-3 text-sm leading-relaxed text-solid-text-secondary">{item.description}</p><div className="mt-4 flex gap-6 text-xs text-solid-text-tertiary"><span>You <strong className="text-solid-text">{youScore}</strong></span><span>Partner <strong className="text-solid-text">{partnerScore}</strong></span></div></article>; }
