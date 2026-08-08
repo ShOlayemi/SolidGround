@@ -80,6 +80,30 @@ async function getSessionResults(
   };
 }
 
+/**
+ * Resolve a user's most recent completed assessment session.
+ * Returns the latest session (by completed_at) with status "completed",
+ * or falls back to the pairing's pinned session if none is found
+ * (defensive — a pairing was created from a completed session, so this
+ * is only hit when the session was deleted or its status changed).
+ */
+async function resolveLatestCompletedSession(
+  supabase: SupabaseClient,
+  userId: string,
+  pinnedSessionId: string | null,
+): Promise<string | null> {
+  const { data: session } = await supabase
+    .from("assessment_sessions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return session?.id ?? pinnedSessionId;
+}
+
 /** Verify the auth'd user is a partner in the given pairing. */
 async function verifyPartner(
   supabase: SupabaseClient,
@@ -777,13 +801,31 @@ export async function refreshReport(
     return { success: false, error: "This pairing has not been accepted yet." };
   }
 
-  // Re-fetch both users' results via service client (bypass RLS)
+  // Re-fetch both users' results via service client (bypass RLS).
+  // Resolve each partner's most recent completed assessment session so a
+  // retaken assessment is reflected in the refreshed report; fall back to
+  // the pairing's pinned session if none is found (defensive).
   const serviceClient2 = await createServiceClient();
+
+  const inviterSessionId = await resolveLatestCompletedSession(
+    serviceClient2,
+    p.inviter_user_id,
+    p.inviter_session_id,
+  );
+  const inviteeSessionId = await resolveLatestCompletedSession(
+    serviceClient2,
+    p.invitee_user_id,
+    p.invitee_session_id,
+  );
+
+  if (!inviterSessionId || !inviteeSessionId) {
+    return { success: false, error: "Blueprint results are not available for both partners." };
+  }
 
   const { data: inviterResultRow, error: inviterFetchError } = await serviceClient2
     .from("blueprint_results")
     .select("session_id, user_id, category_results, overall_score, overall_confidence, created_at, updated_at")
-    .eq("session_id", p.inviter_session_id)
+    .eq("session_id", inviterSessionId)
     .eq("user_id", p.inviter_user_id)
     .maybeSingle();
   if (inviterFetchError || !inviterResultRow) {
@@ -802,7 +844,7 @@ export async function refreshReport(
   const { data: inviteeResultRow, error: inviteeFetchError } = await serviceClient2
     .from("blueprint_results")
     .select("session_id, user_id, category_results, overall_score, overall_confidence, created_at, updated_at")
-    .eq("session_id", p.invitee_session_id)
+    .eq("session_id", inviteeSessionId)
     .eq("user_id", p.invitee_user_id)
     .maybeSingle();
   if (inviteeFetchError || !inviteeResultRow) {

@@ -25,13 +25,17 @@ import type { BlueprintResults } from "@/lib/scoring/types";
 
 // ── Helpers ───────────────────────────────────────────────────
 
-function seedCompletedSession(userId: string, sessionId: string): void {
+function seedCompletedSession(
+  userId: string,
+  sessionId: string,
+  completedAt = "2026-08-01T10:00:00.000Z",
+): void {
   mockSupabase.seed("assessment_sessions", [
     {
       id: sessionId,
       user_id: userId,
       status: "completed",
-      completed_at: "2026-08-01T10:00:00.000Z",
+      completed_at: completedAt,
     },
   ]);
 }
@@ -187,6 +191,71 @@ describe("pairings flow", () => {
 
     // Upsert keeps a single row
     expect(mockSupabase.tables["comparison_reports"]).toHaveLength(1);
+  });
+
+  it("refreshReport uses each partner's latest completed session, not the pinned one", async () => {
+    // Inviter creates the invite from an older session (pinned in the pairing)
+    mockSupabase.setSession(USER_A);
+    seedCompletedSession(USER_A, SESSION_A);
+    seedBlueprint(USER_A, SESSION_A, { core_values: 80 });
+    const invite = await createInvite(SESSION_A);
+
+    // Invitee accepts with their session
+    mockSupabase.setSession(USER_B);
+    seedCompletedSession(USER_B, SESSION_B);
+    seedBlueprint(USER_B, SESSION_B, { core_values: 70 });
+    await acceptInvite(invite.inviteCode!);
+
+    const pairingId = (mockSupabase.tables["pairings"] ?? [])[0].id as string;
+
+    // Inviter retakes the assessment → newer completed session with different results
+    const SESSION_A2 = "session-a2";
+    seedCompletedSession(USER_A, SESSION_A2, "2026-08-02T10:00:00.000Z");
+    seedBlueprint(USER_A, SESSION_A2, { core_values: 20 });
+
+    const refreshed = await refreshReport(pairingId);
+    expect(refreshed.success).toBe(true);
+
+    const fetched = await getComparisonReport(pairingId);
+    expect(fetched.success).toBe(true);
+    const coreValues = fetched.report?.categoryComparisons.find(
+      (c) => c.categoryId === "core_values",
+    );
+    // New session (20) is used, not the pinned session (80)
+    expect(coreValues?.inviterScore).toBe(20);
+    expect(coreValues?.inviteeScore).toBe(70);
+  });
+
+  it("refreshReport falls back to the pinned session when no completed session exists", async () => {
+    mockSupabase.setSession(USER_A);
+    seedCompletedSession(USER_A, SESSION_A);
+    seedBlueprint(USER_A, SESSION_A, { core_values: 80 });
+    const invite = await createInvite(SESSION_A);
+
+    mockSupabase.setSession(USER_B);
+    seedCompletedSession(USER_B, SESSION_B);
+    seedBlueprint(USER_B, SESSION_B, { core_values: 70 });
+    await acceptInvite(invite.inviteCode!);
+
+    const pairingId = (mockSupabase.tables["pairings"] ?? [])[0].id as string;
+
+    // Simulate the inviter's session no longer being completed (e.g. status changed)
+    mockSupabase.tables["assessment_sessions"] = (
+      mockSupabase.tables["assessment_sessions"] ?? []
+    )
+      .filter((s) => !(s.user_id === USER_A && s.status === "completed"))
+      .map((s) => (s.user_id === USER_A ? { ...s, status: "in_progress" } : s));
+
+    const refreshed = await refreshReport(pairingId);
+    expect(refreshed.success).toBe(true);
+
+    // Report still generated from the pinned session's results
+    const fetched = await getComparisonReport(pairingId);
+    expect(fetched.success).toBe(true);
+    const coreValues = fetched.report?.categoryComparisons.find(
+      (c) => c.categoryId === "core_values",
+    );
+    expect(coreValues?.inviterScore).toBe(80);
   });
 
   it("rejects accepting your own invite", async () => {
