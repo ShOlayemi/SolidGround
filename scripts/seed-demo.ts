@@ -55,9 +55,29 @@ async function main() {
     await call('blueprint result', db.from('blueprint_results').upsert({ session_id: session.id, user_id: userId, overall_score: persona.score, overall_confidence: 94, category_results: values, weight_config: { version: 1 } }, { onConflict: 'session_id' }))
     await call('ai insight', db.from('ai_insights').upsert({ user_id: userId, session_id: session.id, blueprint_summary: `${persona.name} has a thoughtful compatibility profile with clear strengths and practical growth opportunities.`, personal_strengths: ['Self-awareness', 'Commitment to growth', 'Values clarity'], growth_opportunities: ['Conflict resolution', 'Emotional expression'], reflection_questions: ['What helps you feel heard during tension?'], communication_recommendations: ['Use a pause-and-return agreement'], relationship_readiness: { score: persona.score! + 6, summary: 'Ready for intentional partnership.' } }, { onConflict: 'session_id' }))
   }
+
+  // Seed the activity feed with representative events for every demo persona.
+  const auditRows = personas.flatMap((persona) => {
+    const userId = uid.get(persona.email)!
+    const sessionId = sessions.get(persona.email)
+    return [
+      { user_id: userId, action: 'profile.update', resource: 'profile', resource_id: userId, details: { source: 'demo_seed', fields: ['display_name', 'relationship_status'] } },
+      ...(sessionId ? [
+        { user_id: userId, action: 'assessment.session_create', resource: 'assessment_session', resource_id: sessionId, details: { source: 'demo_seed', status: 'completed' } },
+        { user_id: userId, action: 'assessment.answer_save', resource: 'assessment_session', resource_id: sessionId, details: { source: 'demo_seed', questions_answered: 88 } },
+        { user_id: userId, action: 'scoring.compute', resource: 'blueprint_result', resource_id: sessionId, details: { source: 'demo_seed', score: persona.score } },
+      ] : []),
+    ]
+  })
+  await call('audit logs', db.from('audit_logs').insert(auditRows))
+
   const jamesId = uid.get('demo-james@solidground.ai')!, emmaId = uid.get('demo-emma@solidground.ai')!
   const jamesSession = sessions.get('demo-james@solidground.ai')!, emmaSession = sessions.get('demo-emma@solidground.ai')!
   const pairing = (await call('pairing', db.from('pairings').upsert({ invite_code: 'DEMO-JAMES-EMMA', inviter_user_id: jamesId, inviter_session_id: jamesSession, invitee_user_id: emmaId, invitee_session_id: emmaSession, status: 'completed', alignment_results: { overall_score: 74 } }, { onConflict: 'invite_code' }).select('id').single()))!
+  await call('pairing audit logs', db.from('audit_logs').insert([
+    { user_id: jamesId, action: 'pairing.create', resource: 'pairing', resource_id: pairing.id, details: { source: 'demo_seed', invite_code: 'DEMO-JAMES-EMMA' } },
+    { user_id: emmaId, action: 'pairing.accept', resource: 'pairing', resource_id: pairing.id, details: { source: 'demo_seed', invite_code: 'DEMO-JAMES-EMMA' } },
+  ]))
   const messages = ['I loved seeing our shared values come through.', 'The conflict section gives us a good conversation to have.', 'I agree — let’s try the pause-and-return idea.', 'Our lifestyle alignment feels really encouraging.', 'Want to talk through finances this weekend?', 'Absolutely. I appreciate how practical this report is.', 'Same here. It feels like a starting point, not a verdict.', 'I’m glad we did this together.']
   await call('pairing messages', db.from('pairing_messages').upsert(messages.map((content, i) => ({ pairing_id: pairing.id, sender_user_id: i % 2 ? emmaId : jamesId, content, created_at: new Date(Date.UTC(2026, 6, 11, 12, i * 4)).toISOString() })), { onConflict: 'id' }))
   await call('comparison report', db.from('comparison_reports').upsert({ pairing_id: pairing.id, overall_compatibility: 74, category_comparisons: { values: 84, communication: 76, finances: 78, lifestyle: 81 }, shared_strengths: ['Shared values', 'Practical planning'], potential_conflicts: [{ category: 'conflict_resolution', severity: 'moderate', type: 'style_difference' }], conversation_guides: [{ category: 'conflict_resolution', prompts: ['How can we make repair feel safe?'] }], growth_opportunities: ['Emotional expression', 'Repair rituals'], deal_breaker_intersections: [] }, { onConflict: 'pairing_id' }))
