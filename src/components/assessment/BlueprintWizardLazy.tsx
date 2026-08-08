@@ -17,25 +17,25 @@ const BlueprintWizard = dynamic(
     loading: () => (
       <div aria-hidden="true" className="w-full">
         {/* Progress bar placeholder */}
-        <div className="mb-6 h-2 w-full animate-pulse rounded-full bg-slate-200" />
+        <div className="mb-6 h-2 w-full animate-pulse rounded-full bg-solid-border" />
         {/* Category sidebar placeholder */}
         <div className="mb-6 space-y-2 md:w-48">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-4 w-40 animate-pulse rounded bg-slate-200" />
+            <div key={i} className="h-4 w-40 animate-pulse rounded bg-solid-border" />
           ))}
         </div>
         {/* Question card placeholder */}
-        <div className="rounded-2xl border border-solid-border bg-solid-surface p-6 md:p-10">
-          <div className="mb-3 h-3 w-24 animate-pulse rounded bg-slate-200" />
-          <div className="mb-6 h-5 w-3/4 animate-pulse rounded bg-slate-200" />
+        <div className="rounded-2xl p-6 md:p-10">
+          <div className="mb-3 h-3 w-24 animate-pulse rounded bg-solid-border" />
+          <div className="mb-6 h-5 w-3/4 animate-pulse rounded bg-solid-border" />
           <div className="space-y-3">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-12 w-full animate-pulse rounded-xl bg-slate-200" />
+              <div key={i} className="h-12 w-full animate-pulse rounded-xl bg-solid-border" />
             ))}
           </div>
           <div className="mt-8 flex justify-between">
-            <div className="h-11 w-28 animate-pulse rounded-xl bg-slate-200" />
-            <div className="h-11 w-28 animate-pulse rounded-xl bg-slate-200" />
+            <div className="h-11 w-28 animate-pulse rounded-xl bg-solid-border" />
+            <div className="h-11 w-28 animate-pulse rounded-xl bg-solid-border" />
           </div>
         </div>
       </div>

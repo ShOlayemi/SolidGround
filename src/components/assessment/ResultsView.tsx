@@ -16,13 +16,15 @@ import { Button } from "@/components/ui/Button";
 import { createInvite } from "@/lib/pairings/actions";
 import { trackEvent } from "@/lib/analytics/events";
 import { AIInsightsSection } from "./AIInsightsSection";
-import { SCORE_BANDS } from "@/lib/scoring/scoring-config";
+import { getScoreBand, SCORE_BANDS } from "@/lib/scoring/scoring-config";
+import { UpgradePrompt } from "@/components/billing/UpgradePrompt";
 
 interface ResultsViewProps {
   results: BlueprintResults;
   sessionId: string;
   pairings?: PairingWithNames[];
   insights: AIInsights | null;
+  canGenerate?: boolean;
 }
 
 interface QuestionScoreDisplay {
@@ -62,12 +64,12 @@ function buildQuestionScoreList(
 }
 
 function scoreColor(score: number): string {
-  if (score >= 70) return "#2E4A3A";
-  if (score >= 45) return "#C4943A";
-  return "#C44E4E";
+  if (score >= 70) return "var(--color-score-strong)";
+  if (score >= 45) return "var(--color-score-developing)";
+  return "var(--color-score-attention)";
 }
 
-export function ResultsView({ results, sessionId, pairings, insights }: ResultsViewProps) {
+export function ResultsView({ results, sessionId, pairings, insights, canGenerate = true }: ResultsViewProps) {
   const { overallScore, overallConfidence, categoryResults, completedAt } =
     results;
   useEffect(() => { trackEvent("report_viewed", { report_type: "blueprint" }); }, []);
@@ -163,6 +165,7 @@ export function ResultsView({ results, sessionId, pairings, insights }: ResultsV
       <AIInsightsSection
         sessionId={sessionId}
         initialInsights={insights}
+        canGenerate={canGenerate}
       />
 
       {/* ── What's Next ───────────────────────────────────── */}

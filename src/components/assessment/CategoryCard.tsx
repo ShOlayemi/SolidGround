@@ -5,15 +5,16 @@
 // ──────────────────────────────────────────────────────────────
 
 import type { CategoryResult } from "@/lib/scoring/types";
+import { CATEGORY_DESCRIPTIONS } from "@/lib/assessment/questions";
 
 interface CategoryCardProps {
   result: CategoryResult;
 }
 
 function scoreColor(score: number): string {
-  if (score >= 70) return "#2E4A3A";
-  if (score >= 45) return "#C4943A";
-  return "#C44E4E";
+  if (score >= 70) return "var(--color-score-strong)";
+  if (score >= 45) return "var(--color-score-developing)";
+  return "var(--color-score-attention)";
 }
 
 export function CategoryCard({ result }: CategoryCardProps) {
@@ -29,6 +30,7 @@ export function CategoryCard({ result }: CategoryCardProps) {
           <h3 className="text-[15px] font-semibold text-solid-text leading-snug">
             {label}
           </h3>
+          <p className="text-[12px] text-solid-text-secondary mt-1">{CATEGORY_DESCRIPTIONS[result.category]}</p>
           <p className="text-[12px] text-solid-text-tertiary mt-0.5">
             {result.questionsAnswered ?? questionCount}/{result.totalQuestions ?? questionCount} answered · {confidence}% consistency
           </p>

@@ -113,7 +113,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
 
   return (
     <>
-      <ResultsView results={result.results!} sessionId={sessionId} pairings={pairings} insights={insights} />
+      <ResultsView results={result.results!} sessionId={sessionId} pairings={pairings} insights={insights} canGenerate={access.allowed} />
       {npsSurvey}
     </>
   );
