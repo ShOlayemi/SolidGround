@@ -466,7 +466,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
         <ResetSessionButton
           variant="link"
           label="Start a New Assessment"
-          description="Your results are being saved — you can start fresh any time."
+          description="Your results are being saved. You can start fresh any time."
         />
       </div>
     );

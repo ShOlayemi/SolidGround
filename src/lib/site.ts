@@ -8,4 +8,4 @@ export const SITE_URL =
 
 export const SITE_NAME = "SolidGround AI";
 export const SITE_TAGLINE =
-  "Relationship intelligence for marriage-minded adults. Map the dimensions that actually predict long-term success — values, communication, finances, lifestyle, and growth.";
+  "Relationship intelligence for marriage-minded adults. Map the dimensions that actually predict long-term success: values, communication, finances, lifestyle, and growth.";

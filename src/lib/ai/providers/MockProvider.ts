@@ -107,7 +107,7 @@ export class MockProvider implements AIProvider {
     // ── blueprintSummary: 2–3 paragraphs ─────────────────────
     const paragraph1 =
       tier === "high"
-        ? `Your Compatibility Blueprint™ assessment reflects an overall score of ${overallScore}/100 — a strong result that suggests a well-developed sense of what you bring to a relationship. Your answers were consistent and self-aware across the relationship dimensions, which makes this profile a reliable foundation for exploring a deeper partnership.`
+        ? `Your Compatibility Blueprint™ assessment reflects an overall score of ${overallScore}/100, a strong result that suggests a well-developed sense of what you bring to a relationship. Your answers were consistent and self-aware across the relationship dimensions, which makes this profile a reliable foundation for exploring a deeper partnership.`
         : tier === "moderate"
           ? `Your overall compatibility score of ${overallScore}/100 shows a solid foundation with meaningful room to grow in specific areas. The Blueprint captures a realistic mix of established strengths and open questions, which is exactly the kind of profile that benefits from continued self-reflection.`
           : `Your overall compatibility score of ${overallScore}/100 suggests you are early in the process of mapping your relationship preferences. That is a valuable starting point: the Blueprint now gives you a concrete picture of where you stand, and the areas below offer a useful map for the work ahead.`;
@@ -116,7 +116,7 @@ export class MockProvider implements AIProvider {
 
     const paragraph3 =
       dealBreakers.length > 0
-        ? `One or more of your responses triggered a deal-breaker flag (${dealBreakers.map((d) => d.label).join(", ")}). This is not a verdict — it is a signal to treat those topics as important conversations to have early and honestly with a partner.`
+        ? `One or more of your responses triggered a deal-breaker flag (${dealBreakers.map((d) => d.label).join(", ")}). This is not a verdict, it is a signal to treat those topics as important conversations to have early and honestly with a partner.`
         : `No deal-breaker flags were triggered in your responses, and your scores are distributed broadly across relationship dimensions — a sign that you are engaging with the full picture rather than a narrow slice of it.`;
 
     const blueprintSummary = `${paragraph1}\n\n${paragraph2}\n\n${paragraph3}`;
@@ -153,7 +153,7 @@ export class MockProvider implements AIProvider {
         : tier === "moderate"
           ? `If you could move ${bottom.label} closer to your strongest area over the next year, which habits would change first?`
           : "What is one new experience or conversation that would help you learn more about your relationship preferences?",
-      "If a partner read your results, which category would you most want to discuss together first — and why?",
+      "If a partner read your results, which category would you most want to discuss together first, and why?",
     ];
 
     // ── communicationRecommendations: 3–4 tailored tips ──────
@@ -165,10 +165,10 @@ export class MockProvider implements AIProvider {
     const communicationRecommendations =
       commScore < 45
         ? [
-            "Practice active listening: summarize what a partner said before sharing your own view — it slows conversations down in a good way.",
+            "Practice active listening: summarize what a partner said before sharing your own view; it slows conversations down in a good way.",
             "Use \"I feel\" statements when a topic gets tense, so the discussion stays about your experience rather than blame.",
             "Schedule a short weekly check-in with a partner so small concerns surface before they become larger ones.",
-            "Ask one clarifying question before assuming you understand — most miscommunication starts with a guess.",
+            "Ask one clarifying question before assuming you understand, most miscommunication starts with a guess.",
           ]
         : commScore < 70
           ? [
@@ -181,12 +181,12 @@ export class MockProvider implements AIProvider {
               "Your communication strengths are a real asset — use them deliberately when introducing harder topics, so they don't carry tension from the start.",
               "Keep refining by asking follow-up questions that go one layer deeper than the first answer.",
               "Be careful that strong communication doesn't become one-sided; leave clear space for a partner to set the pace.",
-              "Notice when a conversation is about logistics versus feelings — and address both.",
+              "Notice when a conversation is about logistics versus feelings, and address both.",
             ];
 
     if (conflictScore < commScore - 15 && communicationRecommendations.length < 4) {
       communicationRecommendations.push(
-        `Your conflict resolution score (${conflictScore}/100) trails your communication score (${commScore}/100) — practicing repair after disagreements would close that gap.`,
+        `Your conflict resolution score (${conflictScore}/100) trails your communication score (${commScore}/100), practicing repair after disagreements would close that gap.`,
       );
     }
 

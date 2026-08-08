@@ -42,7 +42,7 @@ export function fallbackInsights(sessionId: string, results: BlueprintResults): 
     sessionId,
     blueprintSummary: `Your Compatibility Blueprint™ assessment shows an overall score of ${results.overallScore}/100. Your strongest dimension is ${topCategory.label} at ${topCategory.score}/100, which suggests this area is a core strength in how you approach relationships. The area with the most room for growth is ${lowCategory.label} at ${lowCategory.score}/100.
 
-Your results span 12 key relationship dimensions and reflect your unique perspectives on values, communication, lifestyle, and more. These insights are a starting point for self-reflection — not a judgment.
+Your results span 12 key relationship dimensions and reflect your unique perspectives on values, communication, lifestyle, and more. These insights are a starting point for self-reflection, not a judgment.
 
 AI-powered insights are temporarily unavailable. The summary above is based on your raw assessment scores. Please try generating AI insights again later.`,
     personalStrengths: [

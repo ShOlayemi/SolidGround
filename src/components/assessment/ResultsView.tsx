@@ -130,7 +130,7 @@ export function ResultsView({ results, sessionId, pairings, insights, canGenerat
             Your Strengths
           </h2>
           <p className="text-[15px] text-solid-text-secondary mb-8">
-            Areas where you scored highly — these are your relationship
+            Areas where you scored highly; these are your relationship
             superpowers.
           </p>
           <QuestionList items={strengths} type="strength" />
@@ -145,7 +145,7 @@ export function ResultsView({ results, sessionId, pairings, insights, canGenerat
           </h2>
           <p className="text-[15px] text-solid-text-secondary mb-8">
             Areas with room for reflection and development. Growth isn&apos;t a
-            weakness — it&apos;s awareness.
+            weakness, it&apos;s awareness.
           </p>
           <QuestionList items={growthAreas} type="growth" />
         </section>

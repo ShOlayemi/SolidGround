@@ -326,7 +326,7 @@ export function analyzeConflicts(
     const type = classifyConflictType(ca.categoryId);
 
     const description =
-      `You have different approaches to ${ca.categoryName.toLowerCase()} — ` +
+      `You have different approaches to ${ca.categoryName.toLowerCase()}, ` +
       `one partner scores ${ca.inviterScore} while the other scores ${ca.inviteeScore}.`;
 
     conflicts.push({

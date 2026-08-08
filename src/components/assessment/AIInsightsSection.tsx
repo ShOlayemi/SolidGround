@@ -74,7 +74,7 @@ export function AIInsightsSection({
         <p className="text-[15px] text-solid-text-secondary max-w-[480px] mx-auto mb-8">
           Get personalized, data-driven insights based on your Compatibility
           Blueprint™ results. Understand your strengths, growth areas, and
-          relationship patterns — powered by AI analysis of your actual
+          relationship patterns, powered by AI analysis of your actual
           assessment data.
         </p>
         <button
