@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, Clipboard, Link2, Loader2, Send } from "lucide-react";
 import { createInvite } from "@/lib/pairings/actions";
 import { Button } from "@/components/ui/Button";
+import type { RelationshipType } from "@/types";
 
 type InvitePartnerProps = {
   sessionId: string;
@@ -20,13 +21,14 @@ export function InvitePartner({ sessionId, initialInviteCode }: InvitePartnerPro
   const [isCreating, setIsCreating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [relationshipType, setRelationshipType] = useState<RelationshipType>("romantic");
 
   async function handleCreateInvite() {
     setError(null);
     setIsCreating(true);
 
     try {
-      const result = await createInvite(sessionId);
+      const result = await createInvite(sessionId, undefined, relationshipType);
       if (!result.success || !result.inviteCode) {
         setError(result.error ?? "We couldn't create your invite. Please try again.");
         return;
@@ -64,6 +66,7 @@ export function InvitePartner({ sessionId, initialInviteCode }: InvitePartnerPro
           <p className="mt-1.5 max-w-[600px] text-[14px] leading-relaxed text-solid-text-secondary">
             Share a private link with someone you care about to compare your compatibility profiles.
           </p>
+          <fieldset className="mt-4"><legend className="text-[13px] font-medium text-solid-text">Compare as:</legend><div className="mt-2 flex gap-4"><label><input type="radio" name="relationshipType" value="romantic" checked={relationshipType === "romantic"} onChange={() => setRelationshipType("romantic")} /> <span className="ml-1 text-sm">Romantic partner</span></label><label><input type="radio" name="relationshipType" value="platonic" checked={relationshipType === "platonic"} onChange={() => setRelationshipType("platonic")} /> <span className="ml-1 text-sm">Friend (platonic)</span></label></div></fieldset>
 
           {inviteCode ? (
             <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-stretch">

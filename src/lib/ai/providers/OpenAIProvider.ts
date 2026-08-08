@@ -12,7 +12,7 @@
 // ──────────────────────────────────────────────────────────────
 
 import type { BlueprintResults } from "@/lib/scoring/types";
-import type { AIInsights } from "@/types";
+import type { AIInsights, RelationshipType } from "@/types";
 import { buildInsightsPrompt } from "../prompts";
 import { getOpenAI, fallbackInsights, validateAIResponse } from "../service";
 import type { AIProvider } from "./types";
@@ -23,10 +23,10 @@ export class OpenAIProvider implements AIProvider {
    *
    * NEVER throws — returns a fallback on any error.
    */
-  async generateInsights(results: BlueprintResults): Promise<AIInsights> {
+  async generateInsights(results: BlueprintResults, relationshipType: RelationshipType = "romantic"): Promise<AIInsights> {
     try {
       const openai = getOpenAI();
-      const prompt = buildInsightsPrompt(results);
+      const prompt = buildInsightsPrompt(results, relationshipType);
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",

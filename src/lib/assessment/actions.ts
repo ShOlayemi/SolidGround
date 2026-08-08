@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { QUESTIONS, getQuestionById, CATEGORY_ORDER, CATEGORY_LABELS } from "./questions";
+import type { RelationshipType } from "@/types";
 import type {
   AssessmentSession,
   AssessmentAnswer,
@@ -368,11 +369,14 @@ export async function getAssessmentProgress(): Promise<{
     return { success: false, error: "Failed to fetch answers." };
   }
 
+  const mode = (session.mode as RelationshipType | undefined) ?? "romantic";
+  const activeQuestions = mode === "platonic" ? QUESTIONS.filter((q) => q.category !== "children") : QUESTIONS;
+  const activeCategories = CATEGORY_ORDER.filter((cat) => mode !== "platonic" || cat !== "children");
   const answeredIds = new Set((answers ?? []).map((a) => a.question_id));
 
   // Build category progress
-  const categories: CategoryProgress[] = CATEGORY_ORDER.map((cat) => {
-    const total = QUESTIONS.filter((q) => q.category === cat).length;
+  const categories: CategoryProgress[] = activeCategories.map((cat) => {
+    const total = activeQuestions.filter((q) => q.category === cat).length;
     const answered = (answers ?? []).filter((a) => a.category === cat).length;
     return {
       category: cat,
@@ -384,14 +388,14 @@ export async function getAssessmentProgress(): Promise<{
   });
 
   const totalAnswered = answeredIds.size;
-  const percentage = QUESTIONS.length > 0 ? Math.round((totalAnswered / QUESTIONS.length) * 100) : 0;
+  const percentage = activeQuestions.length > 0 ? Math.round((totalAnswered / activeQuestions.length) * 100) : 0;
 
   return {
     success: true,
     progress: {
       session: session as AssessmentSession,
       categories,
-      totalQuestions: QUESTIONS.length,
+      totalQuestions: activeQuestions.length,
       totalAnswered,
       percentage,
     },

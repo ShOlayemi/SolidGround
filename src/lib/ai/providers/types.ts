@@ -7,8 +7,8 @@
 // ──────────────────────────────────────────────────────────────
 
 import type { BlueprintResults } from "@/lib/scoring/types";
-import type { AIInsights } from "@/types";
+import type { AIInsights, RelationshipType } from "@/types";
 
 export interface AIProvider {
-  generateInsights(results: BlueprintResults): Promise<AIInsights>;
+  generateInsights(results: BlueprintResults, relationshipType?: RelationshipType): Promise<AIInsights>;
 }

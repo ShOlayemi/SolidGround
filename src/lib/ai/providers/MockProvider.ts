@@ -9,7 +9,7 @@
 // ──────────────────────────────────────────────────────────────
 
 import type { BlueprintResults, CategoryResult } from "@/lib/scoring/types";
-import type { AIInsights } from "@/types";
+import type { AIInsights, RelationshipType } from "@/types";
 import type { AIProvider } from "./types";
 
 type ScoreTier = "high" | "moderate" | "developing";
@@ -60,11 +60,11 @@ function sortCategories(categories: CategoryResult[]): CategoryResult[] {
 }
 
 export class MockProvider implements AIProvider {
-  async generateInsights(results: BlueprintResults): Promise<AIInsights> {
-    return this.buildInsights(results);
+  async generateInsights(results: BlueprintResults, relationshipType: RelationshipType = "romantic"): Promise<AIInsights> {
+    return this.buildInsights(results, relationshipType);
   }
 
-  private buildInsights(results: BlueprintResults): AIInsights {
+  private buildInsights(results: BlueprintResults, relationshipType: RelationshipType = "romantic"): AIInsights {
     const { sessionId, overallScore, categoryResults } = results;
     const sorted = sortCategories(categoryResults);
     const tier = scoreTier(overallScore);

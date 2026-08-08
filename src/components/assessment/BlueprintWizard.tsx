@@ -34,6 +34,7 @@ interface WizardProps {
   session: AssessmentSession;
   initialAnswers: AssessmentAnswer[];
   inviteCode?: string;
+  mode?: "romantic" | "platonic";
 }
 
 /* ── Derived data ─────────────────────────────────────────── */
@@ -101,8 +102,9 @@ function findCategoryStartFlatIndex(cat: AssessmentCategory): number {
 
 /* ── Component ────────────────────────────────────────────── */
 
-export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardProps) {
+export function BlueprintWizard({ session, initialAnswers, inviteCode, mode = session.mode ?? "romantic" }: WizardProps) {
   const router = useRouter();
+  const activeQuestions = useMemo(() => mode === "platonic" ? FLAT_QUESTIONS.filter((f) => f.question.category !== "children") : FLAT_QUESTIONS, [mode]);
 
   // Build answers map from initial data
   const [answers, setAnswers] = useState<Map<string, unknown>>(() => {
@@ -116,15 +118,15 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
   // Determine starting question
   const [currentIndex, setCurrentIndex] = useState<number>(() => {
     // Find first unanswered question
-    for (let i = 0; i < FLAT_QUESTIONS.length; i++) {
-      if (!answers.has(FLAT_QUESTIONS[i].question.id)) return i;
+    for (let i = 0; i < activeQuestions.length; i++) {
+      if (!answers.has(activeQuestions[i].question.id)) return i;
     }
-    return FLAT_QUESTIONS.length - 1;
+    return activeQuestions.length - 1;
   });
 
   const [wizardState, setWizardState] = useState<WizardState>(() => {
     // Check if all are answered
-    if (answers.size >= FLAT_QUESTIONS.length) return "all_complete";
+    if (answers.size >= activeQuestions.length) return "all_complete";
     return "answering";
   });
 
@@ -138,7 +140,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
   const answersRef = useRef(answers);
   answersRef.current = answers;
 
-  const currentFlat = FLAT_QUESTIONS[currentIndex];
+  const currentFlat = activeQuestions[currentIndex];
   const currentQuestion = currentFlat.question;
 
   // Category progress
@@ -149,7 +151,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
 
   // Overall progress
   const totalAnswered = answers.size;
-  const totalQuestions = FLAT_QUESTIONS.length;
+  const totalQuestions = activeQuestions.length;
   const percentage =
     totalQuestions > 0
       ? Math.round((totalAnswered / totalQuestions) * 100)
@@ -166,7 +168,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
     currentCatQuestionIndex >= currentCatTotal;
 
   // Is current question the last overall?
-  const isLastOverall = currentIndex >= FLAT_QUESTIONS.length - 1;
+  const isLastOverall = currentIndex >= activeQuestions.length - 1;
 
   // Current answer value
   const currentAnswer = answers.get(currentQuestion.id) ?? null;
@@ -175,7 +177,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
 
   const doSave = useCallback(
     async (questionId: string, answer: unknown) => {
-      const q = FLAT_QUESTIONS.find((f) => f.question.id === questionId);
+      const q = activeQuestions.find((f) => f.question.id === questionId);
       if (!q) return;
 
       setIsSaving(true);
@@ -199,7 +201,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
         setIsSaving(false);
       }
     },
-    [session.id],
+    [session.id, mode],
   );
 
   /* ── Handle answer change ──────────────────────────────── */
@@ -283,7 +285,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
       const qs = getQuestionsByCategory(cat);
       // Find the flat index of this specific question
       const targetQId = qs[unansweredOffset]?.id;
-      const targetFlat = FLAT_QUESTIONS.find(
+      const targetFlat = activeQuestions.find(
         (f) => f.question.id === targetQId,
       );
       if (targetFlat) {
@@ -508,7 +510,7 @@ export function BlueprintWizard({ session, initialAnswers, inviteCode }: WizardP
           <div className="max-w-[640px]">
             {/* Question */}
             <QuestionCard
-              question={currentQuestion}
+              question={mode === "platonic" ? { ...currentQuestion, text: currentQuestion.platonicText ?? currentQuestion.text } : currentQuestion}
               value={currentAnswer}
               onChange={handleAnswerChange}
               error={saveError ?? undefined}

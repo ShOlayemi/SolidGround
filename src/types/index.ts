@@ -20,6 +20,8 @@ export interface CompatibilityProfile {
 
 export type Gender = "male" | "female" | "other";
 
+export type RelationshipType = "romantic" | "platonic";
+
 export type RelationshipStatus =
   | "single"
   | "dating"
@@ -163,6 +165,7 @@ export interface AssessmentQuestion {
   text: string;
   type: QuestionType;
   options?: { value: string; label: string }[];
+  platonicText?: string;
 }
 
 export interface AssessmentAnswer {
@@ -179,6 +182,7 @@ export interface AssessmentSession {
   id: string;
   user_id: string;
   status: "not_started" | "in_progress" | "completed" | "abandoned";
+  mode?: RelationshipType;
   current_category: string | null;
   current_question_index: number;
   total_questions_answered: number;

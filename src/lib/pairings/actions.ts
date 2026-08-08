@@ -7,6 +7,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { RelationshipType } from "@/types";
 import type {
   PairingWithNames,
   ComparisonReport,
@@ -134,6 +135,7 @@ async function verifyPartner(
 export async function createInvite(
   sessionId: string,
   inviteeEmail?: string,
+  relationshipType: RelationshipType = "romantic",
 ): Promise<{ success: boolean; inviteCode?: string; pairingId?: string; error?: string }> {
   const auth = await requireUserId();
   if (!auth.success) return auth;
@@ -184,6 +186,7 @@ export async function createInvite(
       inviter_user_id: userId,
       inviter_session_id: sessionId,
       status: "pending",
+      relationship_type: relationshipType,
       alignment_results: { inviter_results: inviterResultsPayload },
     })
     .select("id")

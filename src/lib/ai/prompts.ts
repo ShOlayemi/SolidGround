@@ -8,7 +8,7 @@
 import type { BlueprintResults, CategoryResult } from "@/lib/scoring/types";
 import { CATEGORY_LABELS } from "@/lib/assessment/questions";
 import { getQuestionById } from "@/lib/assessment/questions";
-import type { AssessmentCategory } from "@/types";
+import type { AssessmentCategory, RelationshipType } from "@/types";
 
 interface QuestionScoreDisplay {
   questionId: string;
@@ -53,8 +53,12 @@ function buildQuestionScoreList(
  * - Hallucinating data not present in the input
  * - Giving prescriptive advice
  */
-export function buildInsightsPrompt(results: BlueprintResults): string {
+export function buildInsightsPrompt(results: BlueprintResults, relationshipType: RelationshipType = "romantic"): string {
   const { overallScore, categoryResults } = results;
+
+  const modeInstruction = relationshipType === "platonic"
+    ? "You are analyzing a friendship compatibility profile, not a romantic relationship. Use friend, friendship, and connection language throughout."
+    : "You are analyzing a romantic relationship compatibility profile."
 
   // ── Build category score list ──────────────────────────────
   const categoryLines = categoryResults
@@ -114,7 +118,9 @@ export function buildInsightsPrompt(results: BlueprintResults): string {
     .join("\n\n");
 
   // ── Assemble the prompt ────────────────────────────────────
-  return `You are an AI relationship insight analyst for SolidGround AI, a Relationship Intelligence Platform. Your role is to help users understand themselves better based on their Compatibility Blueprint™ assessment data. You are NOT a relationship coach or therapist. You do NOT make relationship decisions, give prescriptive advice, or tell users what to do.
+  return `You are an AI relationship insight analyst for SolidGround AI, a Relationship Intelligence Platform.
+
+${modeInstruction} Your role is to help users understand themselves better based on their Compatibility Blueprint™ assessment data. You are NOT a relationship coach or therapist. You do NOT make relationship decisions, give prescriptive advice, or tell users what to do.
 
 ## CRITICAL RULES
 1. ONLY reference data explicitly provided below. NEVER invent or assume data.
@@ -150,7 +156,7 @@ Analyze the data above and return a JSON object with the following shape. Every 
   "growthOpportunities": ["3 growth areas based on the actual low-scoring areas above. Frame positively as opportunities for self-reflection."],
   "reflectionQuestions": ["5 thought-provoking questions that help the user reflect on their specific results. Each should reference a specific category or pattern visible in their data."],
   "communicationRecommendations": ["3 communication tips that relate to the user's specific communication score and patterns in their data."],
-  "relationshipReadiness": {
+  "connectionReadiness": {
     "level": "High|Moderate|Developing",
     "summary": "1-2 sentence summary based on the score bands: 70–100 Strong readiness, 45–69 Developing readiness, 0–44 Needs Attention.",
     "strengths": ["2 readiness strengths drawn from the data"],
