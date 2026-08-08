@@ -79,6 +79,26 @@ export async function getDashboardData(): Promise<DashboardData> {
           activeSession = sess;
         }
 
+        // Completed sessions represent a fully answered Blueprint.
+        if (sess.status === "completed") {
+          assessmentProgress = {
+            session: sess,
+            categories: CATEGORY_ORDER.map((cat) => {
+              const total = QUESTIONS.filter((q) => q.category === cat).length;
+              return {
+                category: cat,
+                label: CATEGORY_LABELS[cat],
+                total,
+                answered: total,
+                complete: true,
+              };
+            }),
+            totalQuestions: QUESTIONS.length,
+            totalAnswered: QUESTIONS.length,
+            percentage: 100,
+          };
+        }
+
         // Compute assessment progress for active sessions
         if (sess.status === "in_progress" || sess.status === "not_started") {
           const { data: answers, error: answersError } = await supabase

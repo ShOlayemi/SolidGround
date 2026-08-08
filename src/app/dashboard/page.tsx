@@ -37,7 +37,7 @@ export default async function DashboardPage() {
       </header>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Link href={results ? "/dashboard/scores" : "/dashboard/blueprint"}><StatCard variant="score" label={results ? "View your scores" : "Complete your Blueprint →"} score={results?.overallScore} empty={!results} /></Link>
-        <Link href="/dashboard/blueprint"><StatCard variant="progress" label={progress ? `${progress.totalAnswered} of ${progress.totalQuestions} questions` : "Start Assessment →"} percentage={progress?.percentage ?? 0} empty={!progress} /></Link>
+        <Link href="/dashboard/blueprint"><StatCard variant="progress" label={progress?.percentage === 100 ? "Completed ✓" : progress ? `${progress.totalAnswered} of ${progress.totalQuestions} questions` : "Start Assessment →"} percentage={progress?.percentage ?? 0} empty={!progress} /></Link>
         <Link href="/dashboard/pairings"><StatCard variant="metric" value={pairings.pairings?.length ?? 0} label={pairings.pairings?.length ? "Partner alignments" : "Invite your partner →"} /></Link>
         <Link href="/dashboard/ai-insights"><StatCard variant="insight" icon={Sparkles} title={insights ? "AI insights ready" : "AI Insights"} body={insights ? "Explore your personalized relationship guidance." : results ? "Generate →" : "Complete your Blueprint first."} /></Link>
       </div>
