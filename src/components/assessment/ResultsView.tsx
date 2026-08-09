@@ -8,7 +8,7 @@ import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import type { BlueprintResults, CategoryResult } from "@/lib/scoring/types";
 import { getQuestionById, CATEGORY_LABELS } from "@/lib/assessment/questions";
-import type { AssessmentCategory } from "@/types";
+import type { AssessmentCategory, RelationshipType } from "@/types";
 import type { PairingWithNames, AIInsights } from "@/types";
 import { ScoreRing } from "./ScoreRing";
 import { CategoryCard } from "./CategoryCard";
@@ -18,6 +18,7 @@ import { trackEvent } from "@/lib/analytics/events";
 import { AIInsightsSection } from "./AIInsightsSection";
 import { getScoreBand, SCORE_BANDS } from "@/lib/scoring/scoring-config";
 import { UpgradePrompt } from "@/components/billing/UpgradePrompt";
+import { partnerLabel } from "@/lib/mode";
 
 interface ResultsViewProps {
   results: BlueprintResults;
@@ -25,6 +26,7 @@ interface ResultsViewProps {
   pairings?: PairingWithNames[];
   insights: AIInsights | null;
   canGenerate?: boolean;
+  mode?: RelationshipType;
 }
 
 interface QuestionScoreDisplay {
@@ -69,9 +71,10 @@ function scoreColor(score: number): string {
   return "var(--color-score-attention)";
 }
 
-export function ResultsView({ results, sessionId, pairings, insights, canGenerate = true }: ResultsViewProps) {
+export function ResultsView({ results, sessionId, pairings, insights, canGenerate = true, mode }: ResultsViewProps) {
   const { overallScore, overallConfidence, categoryResults, completedAt } =
     results;
+  const pLabel = partnerLabel(mode);
   useEffect(() => { trackEvent("report_viewed", { report_type: "blueprint" }); }, []);
   const strengths = buildQuestionScoreList(categoryResults, "strengths");
   const growthAreas = buildQuestionScoreList(categoryResults, "growth");
@@ -166,10 +169,11 @@ export function ResultsView({ results, sessionId, pairings, insights, canGenerat
         sessionId={sessionId}
         initialInsights={insights}
         canGenerate={canGenerate}
+        mode={mode}
       />
 
       {/* ── What's Next ───────────────────────────────────── */}
-      <WhatNextSection sessionId={sessionId} pairings={pairings ?? []} />
+      <WhatNextSection sessionId={sessionId} pairings={pairings ?? []} mode={mode} />
     </div>
   );
 }
@@ -179,10 +183,14 @@ export function ResultsView({ results, sessionId, pairings, insights, canGenerat
 function WhatNextSection({
   sessionId,
   pairings,
+  mode,
 }: {
   sessionId: string;
   pairings: PairingWithNames[];
+  mode?: RelationshipType;
 }) {
+  const pLabel = partnerLabel(mode);
+  const capitalizedPLabel = pLabel.charAt(0).toUpperCase() + pLabel.slice(1);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -237,7 +245,7 @@ function WhatNextSection({
       </h2>
       <p className="text-[15px] text-solid-text-secondary max-w-[480px] mx-auto mb-8">
         Your Compatibility Blueprint is just the start. Share it with a
-        partner, retake it as you evolve, or explore what your results mean.
+        {pLabel}, retake it as you evolve, or explore what your results mean.
       </p>
 
       {/* CTA Cards Row */}
@@ -245,10 +253,10 @@ function WhatNextSection({
         {/* Invite Partner Card */}
         <div className="bg-solid-bg border border-solid-border rounded-xl p-5 text-left">
           <h3 className="text-[15px] font-semibold text-solid-text mb-2">
-            Invite Your Partner
+            Invite Your {capitalizedPLabel}
           </h3>
           <p className="text-[13px] text-solid-text-secondary mb-4">
-            Share a link with your partner to compare compatibility profiles.
+            Share a link with your {pLabel} to compare compatibility profiles.
           </p>
 
           {inviteCode ? (
@@ -269,7 +277,7 @@ function WhatNextSection({
                 </Button>
               </div>
               <p className="text-[12px] text-solid-text-tertiary">
-                Send this link to your partner to compare results.
+                Send this link to your {pLabel} to compare results.
               </p>
             </div>
           ) : (
@@ -299,10 +307,10 @@ function WhatNextSection({
           </h3>
           <p className="text-[13px] text-solid-text-secondary mb-4">
             {hasCompletedPairings
-              ? "See your alignment results with partners who have accepted your invite."
+              ? `See your alignment results with ${pLabel}s who have accepted your invite.`
               : pairings.length > 0
-                ? "You have pending invites waiting for a partner to accept."
-                : "Once you and a partner compare profiles, your results appear here."}
+                ? `You have pending invites waiting for a ${pLabel} to accept.`
+                : `Once you and a ${pLabel} compare profiles, your results appear here.`}
           </p>
           {pairings.length > 0 ? (
             <Link href="/dashboard/pairings">

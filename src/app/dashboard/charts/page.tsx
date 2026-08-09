@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getDashboardData } from "@/lib/dashboard/actions";
 import { ChartContainer } from "@/components/dashboard/ChartContainer";
 import { CategoryBar } from "@/components/dashboard/CategoryBar";
+import { partnerLabel } from "@/lib/mode";
+import type { RelationshipType } from "@/types";
 
 import type { Metadata } from "next";
 export const metadata: Metadata = {
@@ -12,13 +14,17 @@ export const metadata: Metadata = {
 export default async function ChartsPage() {
   let latestResults: Awaited<ReturnType<typeof getDashboardData>>["latestResults"] = null;
   let error = false;
+  let mode: RelationshipType | undefined = undefined;
 
   try {
     const data = await getDashboardData();
     latestResults = data.latestResults;
+    mode = data.completedSession?.mode ?? data.activeSession?.mode;
   } catch {
     error = true;
   }
+
+  const pLabel = partnerLabel(mode);
 
   if (error || !latestResults) {
     return <Empty error={error} />;
@@ -89,13 +95,13 @@ export default async function ChartsPage() {
 
           <ChartContainer
             title="Comparison Readiness"
-            description="Pair with a partner to see comparison charts."
+            description={`Pair with a ${pLabel} to see comparison charts.`}
           >
             <Link
               href="/dashboard/pairings"
               className="inline-block text-sm font-medium text-accent-600"
             >
-              Invite a partner &rarr;
+              Invite a {pLabel} &rarr;
             </Link>
           </ChartContainer>
         </div>

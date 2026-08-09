@@ -12,7 +12,7 @@ import { getNPSEligibility } from "@/lib/feedback/actions";
 import { ResultsView } from "@/components/assessment/ResultsView";
 import { NPSSurveyLazy } from "@/components/feedback/NPSSurveyLazy";
 import { Button } from "@/components/ui/Button";
-import type { AIInsights } from "@/types";
+import type { AIInsights, RelationshipType } from "@/types";
 import { checkAccess } from "@/lib/billing/middleware";
 
 interface ResultsPageProps {
@@ -82,6 +82,22 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
     );
   }
 
+  // Resolve mode from the assessment session
+  let mode: RelationshipType | undefined = undefined;
+  try {
+    const session = await getSession();
+    if (session) {
+      const { createClient } = await import("@/lib/supabase/server");
+      const supabase = await createClient();
+      const { data: sess } = await supabase
+        .from("assessment_sessions")
+        .select("mode")
+        .eq("id", sessionId)
+        .maybeSingle();
+      mode = sess?.mode ?? undefined;
+    }
+  } catch { /* mode will be undefined */ }
+
   // Success — fetch pairings & AI insights in parallel
   const access = await checkAccess("aiInsightCount");
   const [pairingsResult, insightsResult] = await Promise.all([
@@ -96,15 +112,15 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       : null;
 
   // NPS survey — prompted once, right after assessment completion
-  const session = await getSession();
-  const npsEligibility = session
-    ? await getNPSEligibility(session.user.id)
+  const userSession = await getSession();
+  const npsEligibility = userSession
+    ? await getNPSEligibility(userSession.user.id)
     : null;
   const npsSurvey =
-    session && npsEligibility?.success && npsEligibility.eligible ? (
+    userSession && npsEligibility?.success && npsEligibility.eligible ? (
       <div className="mx-auto mt-10 w-full max-w-[760px] px-4 pb-8">
         <NPSSurveyLazy
-          userId={session.user.id}
+          userId={userSession.user.id}
           eligible={true}
           source="assessment"
         />
@@ -113,7 +129,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
 
   return (
     <>
-      <ResultsView results={result.results!} sessionId={sessionId} pairings={pairings} insights={insights} canGenerate={access.allowed} />
+      <ResultsView results={result.results!} sessionId={sessionId} pairings={pairings} insights={insights} canGenerate={access.allowed} mode={mode} />
       {npsSurvey}
     </>
   );

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { ChatPanel } from "@/components/chat/ChatPanel";
+import { partnerLabel } from "@/lib/mode";
+import type { RelationshipType } from "@/types";
 
 export interface ChatPartner {
   id: string;
@@ -15,9 +17,11 @@ export interface ChatPartner {
 interface ChatPageClientProps {
   partners: ChatPartner[];
   userName: string;
+  mode?: RelationshipType;
 }
 
-export function ChatPageClient({ partners, userName }: ChatPageClientProps) {
+export function ChatPageClient({ partners, userName, mode }: ChatPageClientProps) {
+  const pLabel = partnerLabel(mode);
   const [selectedId, setSelectedId] = useState<string | null>(
     partners.length === 1 ? partners[0].id : null,
   );
@@ -43,7 +47,7 @@ export function ChatPageClient({ partners, userName }: ChatPageClientProps) {
             <p className="mt-1 text-sm text-text-secondary">Your private conversation</p>
           </div>
         </div>
-        <ChatPanel pairingId={selectedPartner.id} userName={userName} />
+        <ChatPanel pairingId={selectedPartner.id} userName={userName} mode={mode} />
       </div>
     );
   }
@@ -56,7 +60,7 @@ export function ChatPageClient({ partners, userName }: ChatPageClientProps) {
         </div>
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-text-primary">Chat</h1>
-          <p className="mt-1 text-sm text-text-secondary">Choose a partner to start a conversation.</p>
+          <p className="mt-1 text-sm text-text-secondary">{`Select a ${pLabel} to start a conversation.`}</p>
         </div>
       </div>
       <div className="space-y-3">

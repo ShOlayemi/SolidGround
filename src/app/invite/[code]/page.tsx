@@ -8,6 +8,7 @@ import { getInvite, acceptInvite } from "@/lib/pairings/actions";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/Button";
 import { AcceptButton } from "./AcceptButton";
+import { partnerLabel } from "@/lib/mode";
 
 interface InvitePageProps {
   params: Promise<{ code: string }>;
@@ -16,7 +17,7 @@ interface InvitePageProps {
 import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Accept a Pairing Invite",
-  description: "Accept an Alignment Match™ invite and compare your Compatibility Blueprint with your partner.",
+  description: "Accept an Alignment Match™ invite and compare your Compatibility Blueprint.",
 };
 export default async function InvitePage({ params }: InvitePageProps) {
   const { code } = await params;
@@ -47,6 +48,8 @@ export default async function InvitePage({ params }: InvitePageProps) {
       </div>
     );
   }
+
+  const pLabel = partnerLabel(invite.relationshipType);
 
   // Check auth
   const supabase = await createClient();
@@ -149,7 +152,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
             </p>
             <p className="text-[14px] text-solid-text-tertiary mb-8">
               You need to complete your own Compatibility Blueprint assessment
-              before you can compare results with your partner.
+              before you can compare results with your {pLabel}.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href={`/dashboard/blueprint/assess?inviteCode=${encodeURIComponent(code)}`}>

@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Send, MessageCircle } from "lucide-react";
 import { getMessages, sendMessage } from "@/lib/pairings/actions";
-import type { PairingMessage } from "@/types";
+import type { PairingMessage, RelationshipType } from "@/types";
+import { partnerLabel } from "@/lib/mode";
 
-interface ChatPanelProps { pairingId: string; userName: string }
+interface ChatPanelProps { pairingId: string; userName: string; mode?: RelationshipType; }
 
 function isSameDay(first: Date, second: Date): boolean {
   return first.getFullYear() === second.getFullYear()
@@ -39,7 +40,8 @@ function formatMessageTime(timestamp: string): string {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-export function ChatPanel({ pairingId, userName }: ChatPanelProps) {
+export function ChatPanel({ pairingId, userName, mode }: ChatPanelProps) {
+  const pLabel = partnerLabel(mode);
   const [messages, setMessages] = useState<PairingMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -119,12 +121,12 @@ export function ChatPanel({ pairingId, userName }: ChatPanelProps) {
           const showDateDivider = index === 0 || !previousDate || Number.isNaN(messageDate.getTime()) || Number.isNaN(previousDate.getTime()) || !isSameDay(messageDate, previousDate);
           return <div key={message.id}>
             {showDateDivider ? <div className="my-5 flex items-center gap-3 first:mt-0" role="separator"><div className="h-px flex-1 bg-solid-border" /><span className="text-[11px] font-medium text-solid-text-tertiary">{formatDateDivider(message.createdAt)}</span><div className="h-px flex-1 bg-solid-border" /></div> : null}
-            <div className={`mb-4 flex ${mine ? "justify-end" : "justify-start"}`}><div className={`max-w-[80%] rounded-2xl px-4 py-3 ${mine ? "rounded-br-md bg-solid-accent text-white" : "rounded-bl-md bg-slate-100 text-solid-text"}`}><p className={`mb-1 text-[11px] font-semibold ${mine ? "text-white/70" : "text-solid-text-tertiary"}`}>{mine ? userName : message.senderName ?? "Partner"}</p><p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p><time className={`mt-1 block text-[10px] ${mine ? "text-white/60" : "text-solid-text-tertiary"}`} dateTime={message.createdAt}>{formatMessageTime(message.createdAt)}</time></div></div>
+            <div className={`mb-4 flex ${mine ? "justify-end" : "justify-start"}`}><div className={`max-w-[80%] rounded-2xl px-4 py-3 ${mine ? "rounded-br-md bg-solid-accent text-white" : "rounded-bl-md bg-slate-100 text-solid-text"}`}><p className={`mb-1 text-[11px] font-semibold ${mine ? "text-white/70" : "text-solid-text-tertiary"}`}>{mine ? userName : message.senderName ?? pLabel}</p><p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p><time className={`mt-1 block text-[10px] ${mine ? "text-white/60" : "text-solid-text-tertiary"}`} dateTime={message.createdAt}>{formatMessageTime(message.createdAt)}</time></div></div>
           </div>;
         })}
         <div ref={bottomRef} />
       </div>
-      <form onSubmit={handleSubmit} className="flex gap-3 border-t border-solid-border bg-solid-bg p-3 md:p-4"><label htmlFor="partner-message" className="sr-only">Message your partner</label><input id="partner-message" value={content} onChange={(event) => setContent(event.target.value)} placeholder="Write a message..." maxLength={2000} className="min-w-0 flex-1 rounded-xl border border-solid-border bg-solid-surface px-4 py-3 text-sm text-solid-text outline-none transition focus:border-solid-accent" disabled={sending} /><button type="submit" disabled={sending || !content.trim()} aria-label="Send message" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-solid-accent text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"><Send size={17} /></button></form>
+      <form onSubmit={handleSubmit} className="flex gap-3 border-t border-solid-border bg-solid-bg p-3 md:p-4"><label htmlFor="partner-message" className="sr-only">{`Message your ${pLabel}`}</label><input id="partner-message" value={content} onChange={(event) => setContent(event.target.value)} placeholder="Write a message..." maxLength={2000} className="min-w-0 flex-1 rounded-xl border border-solid-border bg-solid-surface px-4 py-3 text-sm text-solid-text outline-none transition focus:border-solid-accent" disabled={sending} /><button type="submit" disabled={sending || !content.trim()} aria-label="Send message" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-solid-accent text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"><Send size={17} /></button></form>
     </div>
   );
 }

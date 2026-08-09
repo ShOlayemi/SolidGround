@@ -205,7 +205,7 @@ export async function createInvite(
   const { data: inviterProfile } = await supabase.from("profiles").select("display_name, full_name").eq("id", userId).maybeSingle();
   const inviterName = inviterProfile?.display_name ?? inviterProfile?.full_name ?? "Someone";
   if (inviteeEmail) {
-    void sendPartnerInviteEmail(inviteeEmail, inviterName, `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://solidground.ai"}/invite/${inviteCode}`);
+    void sendPartnerInviteEmail(inviteeEmail, inviterName, `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://solidground.ai"}/invite/${inviteCode}`, relationshipType);
   }
 
   return { success: true, inviteCode, pairingId: pairing.id };
@@ -221,6 +221,7 @@ export async function getInvite(
   success: boolean;
   inviterName?: string;
   status?: string;
+  relationshipType?: RelationshipType;
   error?: string;
 }> {
   // Use service client — RLS blocks unauthenticated/invitee reads of pending pairings
@@ -228,7 +229,7 @@ export async function getInvite(
 
   const { data: pairing, error } = await serviceClient
     .from("pairings")
-    .select("invite_code, inviter_user_id, status")
+    .select("invite_code, inviter_user_id, status, relationship_type")
     .eq("invite_code", inviteCode)
     .single();
 
@@ -248,6 +249,7 @@ export async function getInvite(
     success: true,
     inviterName,
     status: pairing.status,
+    relationshipType: pairing.relationship_type ?? "romantic",
   };
 }
 
@@ -269,7 +271,7 @@ export async function acceptInvite(
   const serviceClientForPairing = await createServiceClient();
   const { data: pairing, error: pairingError } = await serviceClientForPairing
     .from("pairings")
-    .select("id, invite_code, inviter_user_id, invitee_user_id, inviter_session_id, invitee_session_id, status, alignment_results, created_at, updated_at")
+    .select("id, invite_code, inviter_user_id, invitee_user_id, inviter_session_id, invitee_session_id, status, relationship_type, alignment_results, created_at, updated_at")
     .eq("invite_code", inviteCode)
     .single();
 
@@ -396,11 +398,13 @@ export async function acceptInvite(
     invite_code: inviteCode,
     overall_alignment: alignmentResults.overallAlignment,
   });
+  const isPlatonic = pairing.relationship_type === "platonic";
+  const pLabel = isPlatonic ? "friend" : "partner";
   await createNotification(
     pairing.inviter_user_id,
     "invite_accepted",
-    "Partner invite accepted",
-    "Your partner has accepted the invitation and your alignment report is ready.",
+    `${pLabel.charAt(0).toUpperCase() + pLabel.slice(1)} invite accepted`,
+    `Your ${pLabel} has accepted the invitation and your alignment report is ready.`,
     { pairing_id: pairing.id, href: `/dashboard/pairings/${pairing.id}` },
   );
 
@@ -421,7 +425,7 @@ export async function getPairingResults(
   // Fetch pairing with RLS — will only return if user is inviter or invitee
   const { data: pairing, error } = await supabase
     .from("pairings")
-    .select("id, invite_code, inviter_user_id, invitee_user_id, inviter_session_id, invitee_session_id, status, alignment_results, created_at, updated_at")
+    .select("id, invite_code, inviter_user_id, invitee_user_id, inviter_session_id, invitee_session_id, status, relationship_type, alignment_results, created_at, updated_at")
     .eq("id", pairingId)
     .single();
 
@@ -461,6 +465,7 @@ export async function getPairingResults(
     invitee_avatar_url: pairing.invitee_user_id ? (avatarMap.get(pairing.invitee_user_id) ?? null) : null,
     invitee_session_id: pairing.invitee_session_id,
     status: pairing.status,
+    relationship_type: pairing.relationship_type ?? "romantic",
     alignment_results: pairing.alignment_results ?? null,
     created_at: pairing.created_at,
     updated_at: pairing.updated_at,
@@ -485,7 +490,7 @@ export async function getMyPairings(): Promise<{
   // Fetch pairings where user is inviter OR invitee
   const { data: pairings, error } = await supabase
     .from("pairings")
-    .select("id, invite_code, inviter_user_id, invitee_user_id, inviter_session_id, invitee_session_id, status, alignment_results, created_at, updated_at")
+    .select("id, invite_code, inviter_user_id, invitee_user_id, inviter_session_id, invitee_session_id, status, relationship_type, alignment_results, created_at, updated_at")
     .or(`inviter_user_id.eq.${userId},invitee_user_id.eq.${userId}`)
     .order("created_at", { ascending: false });
 
@@ -529,6 +534,7 @@ export async function getMyPairings(): Promise<{
       : null,
     invitee_session_id: p.invitee_session_id,
     status: p.status,
+    relationship_type: p.relationship_type ?? "romantic",
     alignment_results: p.alignment_results ?? null,
     created_at: p.created_at,
     updated_at: p.updated_at,

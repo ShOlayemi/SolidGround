@@ -10,7 +10,7 @@ import { getAIInsights } from "@/lib/ai/actions";
 import { AIInsightsSection } from "@/components/assessment/AIInsightsSection";
 import { Button } from "@/components/ui/Button";
 import { checkAccess } from "@/lib/billing/middleware";
-import type { AIInsights } from "@/types";
+import type { AIInsights, RelationshipType } from "@/types";
 
 import type { Metadata } from "next";
 export const metadata: Metadata = {
@@ -26,6 +26,7 @@ export default async function AIInsightsPage() {
 
   const data = await getDashboardData();
   const sessionId = data.completedSession?.id;
+  const mode: RelationshipType | undefined = data.completedSession?.mode ?? data.activeSession?.mode;
 
   // No completed blueprint yet → guide the user to the assessment
   if (!sessionId) {
@@ -67,7 +68,7 @@ export default async function AIInsightsPage() {
           Personalized guidance based on your Compatibility Blueprint™ results.
         </p>
       </header>
-      <AIInsightsSection sessionId={sessionId} initialInsights={insights} />
+      <AIInsightsSection sessionId={sessionId} initialInsights={insights} mode={mode} />
     </div>
   );
 }

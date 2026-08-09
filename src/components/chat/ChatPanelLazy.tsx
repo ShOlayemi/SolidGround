@@ -7,6 +7,7 @@
 // skeleton stands in while the chunk loads.
 // ──────────────────────────────────────────────────────────────
 import dynamic from "next/dynamic";
+import type { RelationshipType } from "@/types";
 
 const ChatPanel = dynamic(
   () => import("./ChatPanel").then((m) => m.ChatPanel),
@@ -39,9 +40,11 @@ const ChatPanel = dynamic(
 export function ChatPanelLazy({
   pairingId,
   userName,
+  mode,
 }: {
   pairingId: string;
   userName: string;
+  mode?: RelationshipType;
 }) {
-  return <ChatPanel pairingId={pairingId} userName={userName} />;
+  return <ChatPanel pairingId={pairingId} userName={userName} mode={mode} />;
 }

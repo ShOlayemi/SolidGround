@@ -4,7 +4,7 @@ const dispatch = (to: string, subject: string, html: string) => sendEmail({ to, 
 export const sendWelcomeEmail = (to: string, name: string) => dispatch(to, "Welcome to SolidGround AI", WelcomeEmail({ name }));
 export const sendVerificationEmail = (to: string, name: string, link: string) => dispatch(to, "Verify your SolidGround AI email", VerifyEmail({ name, link }));
 export const sendPasswordResetEmail = (to: string, name: string, link: string) => dispatch(to, "Reset your SolidGround AI password", PasswordResetEmail({ name, link }));
-export const sendPartnerInviteEmail = (to: string, inviterName: string, inviteLink: string) => dispatch(to, `${inviterName} invited you to SolidGround AI`, PartnerInviteEmail({ inviterName, inviteLink }));
+export const sendPartnerInviteEmail = (to: string, inviterName: string, inviteLink: string, relationshipType?: string) => dispatch(to, `${inviterName} invited you to SolidGround AI`, PartnerInviteEmail({ inviterName, inviteLink, relationshipType }));
 export const sendAssessmentCompleteEmail = (to: string, name: string, score: number) => dispatch(to, "Your Compatibility Blueprint is ready", AssessmentCompleteEmail({ name, score }));
 export const sendSubscriptionConfirmEmail = (to: string, name: string, plan: string, amount: number) => dispatch(to, "Your SolidGround subscription is confirmed", SubscriptionConfirmEmail({ name, plan, amount }));
 export const sendBillingReceiptEmail = (to: string, name: string, amount: number, date: string, description: string) => dispatch(to, "Your SolidGround billing receipt", BillingReceiptEmail({ name, amount, date, description }));

@@ -60,7 +60,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       // Get the most recent assessment_session (any status)
       const { data: recentSession, error: sessionError } = await supabase
         .from("assessment_sessions")
-        .select("id, user_id, status, created_at, updated_at")
+        .select("id, user_id, status, mode, created_at, updated_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(1)

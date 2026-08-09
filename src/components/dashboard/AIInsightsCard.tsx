@@ -1,16 +1,20 @@
-import type { AIInsights } from "@/types";
+import type { AIInsights, RelationshipType } from "@/types";
+import { relationshipLabel } from "@/lib/mode";
 
 interface AIInsightsCardProps {
   insights: AIInsights | null;
   hasResults: boolean;
   sessionId: string | null;
+  mode?: RelationshipType;
 }
 
 export function AIInsightsCard({
   insights,
   hasResults,
   sessionId,
+  mode,
 }: AIInsightsCardProps) {
+  const rLabel = relationshipLabel(mode);
   // ── Insights exist → show summary snippet ──────────────────
   if (insights) {
     return (
@@ -110,7 +114,7 @@ export function AIInsightsCard({
         </div>
         <p className="text-[15px] text-solid-text-secondary leading-relaxed mb-4">
           Your Compatibility Blueprint™ is ready. Generate AI-powered insights
-          to understand your relationship patterns, strengths, and growth areas.
+          to understand your {rLabel} patterns, strengths, and growth areas.
         </p>
         <a
           href={`/dashboard/blueprint/results?sessionId=${sessionId}`}
@@ -155,7 +159,7 @@ export function AIInsightsCard({
         </div>
       </div>
       <p className="text-[15px] text-solid-text-secondary leading-relaxed">
-        Receive personalized relationship insights after completing your
+        Receive personalized {rLabel} insights after completing your
         Blueprint.
       </p>
     </div>

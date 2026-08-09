@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth/actions";
 import { getProfile } from "@/lib/profile/actions";
 import { getMyPairings } from "@/lib/pairings/actions";
 import { ChatPageClient, type ChatPartner } from "@/components/chat/ChatPageClient";
+import { partnerLabel } from "@/lib/mode";
+import type { RelationshipType } from "@/types";
 
 export const metadata = {
   title: "Chat",
@@ -32,6 +34,10 @@ export default async function ChatPage() {
     (pairing) => ["accepted", "active", "completed"].includes(pairing.status),
   );
   const userName = profile?.display_name ?? profile?.full_name ?? session.user.email?.split("@")[0] ?? "You";
+  
+  // Resolve mode from first connected pairing (all pairings share the same mode)
+  const mode: RelationshipType | undefined = connectedPairings[0]?.relationship_type;
+  
   const partners: ChatPartner[] = connectedPairings.map((pairing) => {
     const isInviter = pairing.inviter_user_id === session.user.id;
     const name = isInviter ? pairing.invitee_name ?? "Partner" : pairing.inviter_name;
@@ -62,5 +68,5 @@ export default async function ChatPage() {
     );
   }
 
-  return <ChatPageClient partners={partners} userName={userName} />;
+  return <ChatPageClient partners={partners} userName={userName} mode={mode} />;
 }

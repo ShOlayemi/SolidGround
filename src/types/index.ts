@@ -259,6 +259,7 @@ export interface PairingWithNames {
   invitee_avatar_url?: string | null;
   invitee_session_id: string | null;
   status: PairingStatus;
+  relationship_type?: RelationshipType;
   alignment_results: AlignmentResults | null;
   created_at: string;
   updated_at: string;
