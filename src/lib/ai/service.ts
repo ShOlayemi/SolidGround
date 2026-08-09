@@ -8,7 +8,7 @@
 
 import OpenAI from "openai";
 import type { BlueprintResults } from "@/lib/scoring/types";
-import type { AIInsights } from "@/types";
+import type { AIInsights, RelationshipType } from "@/types";
 import { createClient } from "@/lib/supabase/server";
 import { aiProvider } from "./providerFactory";
 
@@ -27,7 +27,10 @@ export function getOpenAI(): OpenAI {
 // ── Fallback insights (returned on error) ──────────────────────
 // Used by OpenAIProvider when the API call fails.
 
-export function fallbackInsights(sessionId: string, results: BlueprintResults): AIInsights {
+export function fallbackInsights(sessionId: string, results: BlueprintResults, relationshipType: RelationshipType = "romantic"): AIInsights {
+  const friend = relationshipType === "platonic";
+  const noun = friend ? "friendship" : "relationship";
+  const person = friend ? "friend" : "partner";
   const topCategory = results.categoryResults.reduce((best, curr) =>
     curr.score > best.score ? curr : best,
     results.categoryResults[0],
@@ -40,9 +43,9 @@ export function fallbackInsights(sessionId: string, results: BlueprintResults): 
 
   return {
     sessionId,
-    blueprintSummary: `Your Compatibility Blueprint™ assessment shows an overall score of ${results.overallScore}/100. Your strongest dimension is ${topCategory.label} at ${topCategory.score}/100, which suggests this area is a core strength in how you approach relationships. The area with the most room for growth is ${lowCategory.label} at ${lowCategory.score}/100.
+    blueprintSummary: `Your ${friend ? "Friendship Blueprint" : "Compatibility Blueprint™"} assessment shows an overall score of ${results.overallScore}/100. Your strongest dimension is ${topCategory.label} at ${topCategory.score}/100, which suggests this area is a core strength in how you approach ${noun}s. The area with the most room for growth is ${lowCategory.label} at ${lowCategory.score}/100.
 
-Your results span 12 key relationship dimensions and reflect your unique perspectives on values, communication, lifestyle, and more. These insights are a starting point for self-reflection, not a judgment.
+Your results span 12 key ${noun} dimensions and reflect your unique perspectives on values, communication, lifestyle, and more. These insights are a starting point for self-reflection, not a judgment.
 
 AI-powered insights are temporarily unavailable. The summary above is based on your raw assessment scores. Please try generating AI insights again later.`,
     personalStrengths: [
@@ -55,23 +58,23 @@ AI-powered insights are temporarily unavailable. The summary above is based on y
     growthOpportunities: [
       `${lowCategory.label} shows room for reflection and growth (${lowCategory.score}/100)`,
       "Consider exploring how your responses vary across different relationship contexts",
-      "Partner comparison (Alignment Match™) can reveal blind spots you may not see alone",
+      "${person[0].toUpperCase() + person.slice(1)} comparison (Alignment Match™) can reveal blind spots you may not see alone",
     ],
     reflectionQuestions: [
       `What surprised you most about your ${topCategory.label} results?`,
-      `How do your ${lowCategory.label} responses reflect your past relationship experiences?`,
-      "Which category do you think a partner would rate you differently on?",
+      `How do your ${lowCategory.label} responses reflect your past ${noun} experiences?`,
+      "Which category do you think a ${person} would rate you differently on?",
       "What's one pattern you noticed across all your responses?",
       "If you retook this in a year, which scores would you most want to see change?",
     ],
     communicationRecommendations: [
-      "Use 'I feel' statements when discussing sensitive topics with a partner",
+      "Use 'I feel' statements when discussing sensitive topics with a ${person}",
       "Practice active listening by summarizing what your partner said before responding",
       "Schedule regular check-ins rather than waiting for issues to surface",
     ],
     relationshipReadiness: {
       level: results.overallScore >= 70 ? "High" : results.overallScore >= 45 ? "Moderate" : "Developing",
-      summary: `Based on an overall score of ${results.overallScore}/100, you show ${results.overallScore >= 70 ? "strong" : results.overallScore >= 45 ? "moderate" : "developing"} readiness for a serious relationship.`,
+      summary: `Based on an overall score of ${results.overallScore}/100, you show ${results.overallScore >= 70 ? "strong" : results.overallScore >= 45 ? "moderate" : "developing"} readiness for a ${friend ? "strong friendship foundation" : "serious relationship"}.`,
       strengths: [
         `${topCategory.label} awareness (${topCategory.score}/100)`,
         "Completion of structured self-assessment",
@@ -155,9 +158,9 @@ export function validateAIResponse(data: any): AIInsights {
  * NEVER throws — providers return a fallback on any error.
  */
 export async function generateInsights(
-  results: BlueprintResults,
+  results: BlueprintResults, relationshipType: RelationshipType = "romantic",
 ): Promise<AIInsights> {
-  return aiProvider.generateInsights(results);
+  return aiProvider.generateInsights(results, relationshipType);
 }
 
 // ── Get or Generate with Caching ───────────────────────────────
@@ -244,7 +247,9 @@ export async function getOrGenerateInsights(
     };
 
     // ── GENERATE ─────────────────────────────────────────────
-    const insights = await generateInsights(results);
+    const { data: sessionMode } = await supabase.from("assessment_sessions").select("mode").eq("id", sessionId).maybeSingle();
+    const relationshipType = sessionMode?.mode ?? "romantic";
+    const insights = await generateInsights(results, relationshipType);
     insights.sessionId = sessionId;
 
     // ── STORE ────────────────────────────────────────────────

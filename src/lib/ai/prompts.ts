@@ -57,7 +57,7 @@ export function buildInsightsPrompt(results: BlueprintResults, relationshipType:
   const { overallScore, categoryResults } = results;
 
   const modeInstruction = relationshipType === "platonic"
-    ? "You are analyzing a friendship compatibility profile, not a romantic relationship. Use friend, friendship, and connection language throughout."
+    ? "You are analyzing a friendship profile, not a romantic relationship. Use friend/friendship/connection language throughout. Do not mention partners, dating, marriage, or couples."
     : "You are analyzing a romantic relationship compatibility profile."
 
   // ── Build category score list ──────────────────────────────

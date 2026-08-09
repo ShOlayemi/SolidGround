@@ -34,14 +34,14 @@ const STRENGTH_PHRASES: Record<string, string> = {
 const GROWTH_PHRASES: Record<string, string> = {
   core_values: "reflecting on which values are non-negotiable versus flexible could deepen your clarity",
   communication: "practicing active listening and \"I feel\" statements could strengthen difficult conversations",
-  lifestyle: "exploring how your daily rhythm would align with a partner's could surface useful conversation topics",
+  lifestyle: "exploring how your daily rhythm would align with a ${person}'s could surface useful conversation topics",
   money: "building a shared vocabulary around spending and saving would help future alignment conversations",
   career: "clarifying how ambition and downtime balance in your ideal relationship could be valuable",
-  family: "considering how family expectations will shape your partnership is worth deeper reflection",
-  children: "exploring your parenting preferences further would help you enter that conversation with a partner",
+  family: "considering how family expectations will shape your ${person}ship is worth deeper reflection",
+  children: "exploring your parenting preferences further would help you enter that conversation with a ${person}",
   conflict_resolution: "developing repair rituals after disagreements could reduce friction when tensions rise",
   health_wellness: "examining how your wellbeing habits translate into shared routines could strengthen partnership",
-  personal_growth: "identifying one or two growth habits to practice with a partner would build momentum",
+  personal_growth: "identifying one or two growth habits to practice with a ${person} would build momentum",
   social_life: "finding the right balance of shared and independent social time is worth intentional thought",
   long_term_vision: "getting specific about timelines and milestones would sharpen your picture of a shared future",
 };
@@ -68,15 +68,19 @@ export class MockProvider implements AIProvider {
     const { sessionId, overallScore, categoryResults } = results;
     const sorted = sortCategories(categoryResults);
     const tier = scoreTier(overallScore);
+    const friend = relationshipType === "platonic";
+    const person = friend ? "friend" : "partner";
+    const noun = friend ? "friendship" : "relationship";
+    const blueprint = friend ? "Friendship Blueprint" : "Compatibility Blueprint™";
 
     // ── Guard: no category data ──────────────────────────────
     if (sorted.length === 0) {
       return {
         sessionId,
-        blueprintSummary: `Your Compatibility Blueprint™ assessment shows an overall score of ${overallScore}/100. Without category-level detail available, this summary is based on your overall result and your commitment to structured self-reflection.`,
+        blueprintSummary: `Your ${blueprint} assessment shows an overall score of ${overallScore}/100. Without category-level detail available, this summary is based on your overall result and your commitment to structured self-reflection.`,
         personalStrengths: [
           "Commitment to structured relationship reflection",
-          "Honest self-assessment across relationship dimensions",
+          "Honest self-assessment across ${noun} dimensions",
         ],
         growthOpportunities: [
           "Completing the full Blueprint assessment will unlock a detailed category-level analysis",
@@ -86,12 +90,12 @@ export class MockProvider implements AIProvider {
           "What do you hope to learn about yourself through this process?",
         ],
         communicationRecommendations: [
-          "Practice active listening by summarizing what a partner said before responding",
+          "Practice active listening by summarizing what a ${person} said before responding",
           "Use \"I feel\" statements when discussing sensitive topics",
         ],
         relationshipReadiness: {
           level: overallScore >= 70 ? "High" : overallScore >= 45 ? "Moderate" : "Developing",
-          summary: `Based on an overall score of ${overallScore}/100, you are ${overallScore >= 70 ? "strongly" : overallScore >= 45 ? "moderately" : "developing"} positioned for a serious relationship.`,
+          summary: `Based on an overall score of ${overallScore}/100, you are ${overallScore >= 70 ? "strongly" : overallScore >= 45 ? "moderately" : "developing"} positioned for a ${friend ? "strong friendship foundation" : "serious relationship"}.`,
           strengths: ["Willingness to engage in structured relationship reflection"],
           areas_to_develop: ["Completing the full Blueprint assessment for a detailed profile"],
         },
@@ -107,29 +111,29 @@ export class MockProvider implements AIProvider {
     // ── blueprintSummary: 2–3 paragraphs ─────────────────────
     const paragraph1 =
       tier === "high"
-        ? `Your Compatibility Blueprint™ assessment reflects an overall score of ${overallScore}/100, a strong result that suggests a well-developed sense of what you bring to a relationship. Your answers were consistent and self-aware across the relationship dimensions, which makes this profile a reliable foundation for exploring a deeper partnership.`
+        ? `Your ${blueprint} assessment reflects an overall score of ${overallScore}/100, a strong result that suggests a well-developed sense of what you bring to a relationship. Your answers were consistent and self-aware across the ${noun} dimensions, which makes this profile a reliable foundation for exploring a deeper partnership.`
         : tier === "moderate"
           ? `Your overall compatibility score of ${overallScore}/100 shows a solid foundation with meaningful room to grow in specific areas. The Blueprint captures a realistic mix of established strengths and open questions, which is exactly the kind of profile that benefits from continued self-reflection.`
           : `Your overall compatibility score of ${overallScore}/100 suggests you are early in the process of mapping your relationship preferences. That is a valuable starting point: the Blueprint now gives you a concrete picture of where you stand, and the areas below offer a useful map for the work ahead.`;
 
-    const paragraph2 = `Your strongest dimension is ${top.label} at ${top.score}/100, while ${bottom.label} at ${bottom.score}/100 offers the most room for exploration. This pattern points toward the kinds of experiences and conversations that would feel most natural for you, and the growth areas worth paying attention to as you get to know a partner.`;
+    const paragraph2 = `Your strongest dimension is ${top.label} at ${top.score}/100, while ${bottom.label} at ${bottom.score}/100 offers the most room for exploration. This pattern points toward the kinds of experiences and conversations that would feel most natural for you, and the growth areas worth paying attention to as you get to know a ${person}.`;
 
     const paragraph3 =
       dealBreakers.length > 0
-        ? `One or more of your responses triggered a deal-breaker flag (${dealBreakers.map((d) => d.label).join(", ")}). This is not a verdict, it is a signal to treat those topics as important conversations to have early and honestly with a partner.`
-        : `No deal-breaker flags were triggered in your responses, and your scores are distributed broadly across relationship dimensions — a sign that you are engaging with the full picture rather than a narrow slice of it.`;
+        ? `One or more of your responses triggered a deal-breaker flag (${dealBreakers.map((d) => d.label).join(", ")}). This is not a verdict, it is a signal to treat those topics as important conversations to have early and honestly with a ${person}.`
+        : `No deal-breaker flags were triggered in your responses, and your scores are distributed broadly across ${noun} dimensions — a sign that you are engaging with the full picture rather than a narrow slice of it.`;
 
     const blueprintSummary = `${paragraph1}\n\n${paragraph2}\n\n${paragraph3}`;
 
     // ── personalStrengths: top 3–5 categories ────────────────
     const personalStrengths = sorted.slice(0, Math.min(5, sorted.length)).map((c) => {
-      const phrase = STRENGTH_PHRASES[c.category] ?? "a consistent, self-aware area of your relationship profile";
+      const phrase = (STRENGTH_PHRASES[c.category] ?? "a consistent, self-aware area of your relationship profile").replaceAll("partner", person).replaceAll("relationship", noun);
       return `${c.label} (${c.score}/100) — ${phrase}`;
     });
     // Always keep at least 3 when data permits.
     if (personalStrengths.length < 3 && sorted.length > personalStrengths.length) {
       personalStrengths.push(
-        `Honest self-assessment across ${sorted.length} relationship dimensions`,
+        `Honest self-assessment across ${sorted.length} ${noun} dimensions`,
         "Commitment to understanding your compatibility profile",
       );
     }
@@ -137,7 +141,7 @@ export class MockProvider implements AIProvider {
     // ── growthOpportunities: bottom 3 categories ─────────────
     const growthCount = Math.min(3, sorted.length);
     const growthOpportunities = sorted.slice(-growthCount).map((c) => {
-      const phrase = GROWTH_PHRASES[c.category] ?? "an area with room for reflection";
+      const phrase = (GROWTH_PHRASES[c.category] ?? "an area with room for reflection").replaceAll("partner", person).replaceAll("relationship", noun);
       return `${c.label} (${c.score}/100) — ${phrase}`;
     });
 
@@ -153,7 +157,7 @@ export class MockProvider implements AIProvider {
         : tier === "moderate"
           ? `If you could move ${bottom.label} closer to your strongest area over the next year, which habits would change first?`
           : "What is one new experience or conversation that would help you learn more about your relationship preferences?",
-      "If a partner read your results, which category would you most want to discuss together first, and why?",
+      "If a ${person} read your results, which category would you most want to discuss together first, and why?",
     ];
 
     // ── communicationRecommendations: 3–4 tailored tips ──────
@@ -165,22 +169,22 @@ export class MockProvider implements AIProvider {
     const communicationRecommendations =
       commScore < 45
         ? [
-            "Practice active listening: summarize what a partner said before sharing your own view; it slows conversations down in a good way.",
+            "Practice active listening: summarize what a ${person} said before sharing your own view; it slows conversations down in a good way.",
             "Use \"I feel\" statements when a topic gets tense, so the discussion stays about your experience rather than blame.",
-            "Schedule a short weekly check-in with a partner so small concerns surface before they become larger ones.",
+            "Schedule a short weekly check-in with a ${person} so small concerns surface before they become larger ones.",
             "Ask one clarifying question before assuming you understand, most miscommunication starts with a guess.",
           ]
         : commScore < 70
           ? [
               "You have solid communication habits — the next step is making them explicit, such as naming when you need a pause during a difficult conversation.",
-              "Deepen conversations by asking open-ended questions about a partner's perspective rather than confirming your own.",
+              "Deepen conversations by asking open-ended questions about a ${person}'s perspective rather than confirming your own.",
               "Pay attention to non-verbal cues: tone and body language often carry more than the words during sensitive topics.",
               "Create a shared repair ritual — a small gesture both of you recognize as a reset after disagreement.",
             ]
           : [
               "Your communication strengths are a real asset — use them deliberately when introducing harder topics, so they don't carry tension from the start.",
               "Keep refining by asking follow-up questions that go one layer deeper than the first answer.",
-              "Be careful that strong communication doesn't become one-sided; leave clear space for a partner to set the pace.",
+              "Be careful that strong communication doesn't become one-sided; leave clear space for a ${person} to set the pace.",
               "Notice when a conversation is about logistics versus feelings, and address both.",
             ];
 
@@ -193,16 +197,16 @@ export class MockProvider implements AIProvider {
     // ── relationshipReadiness ────────────────────────────────
     const readinessSummary =
       tier === "high"
-        ? `You demonstrate high readiness for a serious relationship, with ${top.label} as your clearest strength at ${top.score}/100 and ${bottom.label} at ${bottom.score}/100 as the area to develop alongside a partner.`
+        ? `You demonstrate high readiness for a ${friend ? "strong friendship foundation" : "serious relationship"}, with ${top.label} as your clearest strength at ${top.score}/100 and ${bottom.label} at ${bottom.score}/100 as the area to develop alongside a ${person}.`
         : tier === "moderate"
-          ? `You show moderate readiness for a serious relationship, grounded in ${top.label} (${top.score}/100) with ${bottom.label} (${bottom.score}/100) as the area to develop alongside a partner.`
-          : `You are developing your readiness for a serious relationship; your overall score of ${overallScore}/100 is a concrete starting point, with ${top.label} (${top.score}/100) as an early strength to build on.`;
+          ? `You show moderate readiness for a ${friend ? "strong friendship foundation" : "serious relationship"}, grounded in ${top.label} (${top.score}/100) with ${bottom.label} (${bottom.score}/100) as the area to develop alongside a ${person}.`
+          : `You are developing your readiness for a ${friend ? "strong friendship foundation" : "serious relationship"}; your overall score of ${overallScore}/100 is a concrete starting point, with ${top.label} (${top.score}/100) as an early strength to build on.`;
 
     const areasToDevelop = [
       `${bottom.label} (${bottom.score}/100) — ${GROWTH_PHRASES[bottom.category] ?? "an area to explore"}`,
       dealBreakers.length > 0
-        ? `Discussing the deal-breaker flagged in ${dealBreakers[0].label} early and honestly with a partner`
-        : `Turning reflection into regular, low-stakes conversations with a partner (starting with ${secondBottom.label})`,
+        ? `Discussing the deal-breaker flagged in ${dealBreakers[0].label} early and honestly with a ${person}`
+        : `Turning reflection into regular, low-stakes conversations with a ${person} (starting with ${secondBottom.label})`,
     ];
 
     return {
