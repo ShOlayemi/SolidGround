@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { resetSession } from "@/lib/assessment/actions";
 import { Button } from "@/components/ui/Button";
+import type { RelationshipType } from "@/types";
 
 interface ResetSessionButtonProps {
   /** Visual style of the button */
@@ -14,6 +15,8 @@ interface ResetSessionButtonProps {
   description?: string;
   /** Optional CSS classes */
   className?: string;
+  /** Relationship mode for the new session */
+  mode?: RelationshipType;
 }
 
 export function ResetSessionButton({
@@ -21,6 +24,7 @@ export function ResetSessionButton({
   label = "Start Over",
   description,
   className,
+  mode,
 }: ResetSessionButtonProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -30,9 +34,9 @@ export function ResetSessionButton({
     setError(null);
     startTransition(async () => {
       try {
-        const result = await resetSession();
+        const result = await resetSession(mode ?? "romantic");
         if (result.success && result.session) {
-          router.push("/dashboard/blueprint/assess");
+          router.push(`/dashboard/blueprint/assess?mode=${mode ?? "romantic"}`);
         } else {
           setError(result.error ?? "Failed to reset. Please try again.");
         }

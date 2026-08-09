@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CATEGORY_ORDER, CATEGORY_LABELS, CATEGORY_DESCRIPTIONS, getQuestionsByCategory } from "@/lib/assessment/questions";
 import { Button } from "@/components/ui/Button";
 import { ResetSessionButton } from "@/components/assessment/ResetSessionButton";
+import { ModeSelector } from "@/components/assessment/ModeSelector";
 import type { BlueprintResults } from "@/lib/scoring/types";
 import { checkBlueprintLimit } from "@/lib/billing/middleware";
 import { UpgradePrompt } from "@/components/billing/UpgradePrompt";
@@ -129,7 +130,16 @@ function StartView({ canStart }: { canStart: boolean }) {
       </div>
 
       {/* Start button */}
-      {canStart ? <Link href="/dashboard/blueprint/assess"><Button variant="filled" size="lg" className="text-[15px] px-10 py-4">Start Assessment</Button></Link> : <UpgradePrompt feature="Additional Blueprint assessments" message="You have used your free Blueprint. Upgrade to continue building your profile." />}
+      {canStart ? (
+        <ModeSelector
+          resetFirst={false}
+          label="Start Assessment"
+          variant="filled"
+          size="lg"
+        />
+      ) : (
+        <UpgradePrompt feature="Additional Blueprint assessments" message="You have used your free Blueprint. Upgrade to continue building your profile." />
+      )}
 
       {/* Category grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-16 text-left">
@@ -322,11 +332,15 @@ function CompletedView({
       </div>
 
       <div className="mt-6">
-        <ResetSessionButton
-          variant="link"
+        <ModeSelector
+          resetFirst
           label="Start a New Assessment"
-          description="Take the assessment again with a fresh session."
+          variant="ghost"
+          size="md"
         />
+        <p className="text-[12px] text-solid-text-tertiary mt-1">
+          Take the assessment again with a fresh session.
+        </p>
       </div>
 
       {/* In-progress session if any */}

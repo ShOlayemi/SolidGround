@@ -32,12 +32,13 @@ function seedBlueprint(userId: string, sessionId: string, scores: Partial<Record
   }]);
 }
 
-function seedRequest(status: "pending" | "accepted" | "declined" = "pending"): void {
+function seedRequest(status: "pending" | "accepted" | "declined" = "pending", relationshipType = "romantic"): void {
   mockSupabase.seed("connection_requests", [{
     id: REQUEST_ID,
     from_user_id: USER_A,
     to_user_id: USER_B,
     status,
+    relationship_type: relationshipType,
     created_at: "2026-08-01T10:00:00.000Z",
     updated_at: "2026-08-01T10:00:00.000Z",
   }]);
@@ -56,6 +57,18 @@ describe("connection actions", () => {
       from_user_id: USER_A,
       to_user_id: USER_B,
       status: "pending",
+    });
+  });
+
+  it("sendConnectionRequest stores relationship_type", async () => {
+    mockSupabase.setSession(USER_A);
+    const result = await sendConnectionRequest(USER_B, "platonic");
+
+    expect(result.success).toBe(true);
+    expect(mockSupabase.tables.connection_requests[0]).toMatchObject({
+      from_user_id: USER_A,
+      to_user_id: USER_B,
+      relationship_type: "platonic",
     });
   });
 
@@ -91,8 +104,23 @@ describe("connection actions", () => {
       inviter_user_id: USER_A,
       invitee_user_id: USER_B,
       status: "completed",
+      relationship_type: "romantic",
     });
     expect(mockSupabase.tables.comparison_reports).toHaveLength(1);
+  });
+
+  it("respondToConnectionRequest passes through relationship_type to pairing", async () => {
+    mockSupabase.setSession(USER_B);
+    seedRequest("pending", "platonic");
+    seedBlueprint(USER_A, "session-a", { core_values: 80 });
+    seedBlueprint(USER_B, "session-b", { core_values: 70 });
+
+    const result = await respondToConnectionRequest(REQUEST_ID, true);
+
+    expect(result.success).toBe(true);
+    expect(mockSupabase.tables.pairings[0]).toMatchObject({
+      relationship_type: "platonic",
+    });
   });
 
   it("respondToConnectionRequest with decline updates status", async () => {

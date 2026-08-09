@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { createNotification } from "@/lib/notifications/actions";
 import { computeAlignment, generateComparisonReport } from "@/lib/pairings/alignment";
 import type { BlueprintResults } from "@/lib/scoring/types";
+import type { RelationshipType } from "@/types";
 
 type Result<T> = { success: boolean; error?: string } & T;
 export type ConnectionRequest = { id: string; from_user_id: string; to_user_id: string; status: "pending" | "accepted" | "declined"; created_at: string; updated_at: string; from_name?: string; to_name?: string };
@@ -40,12 +41,12 @@ export async function discoverUsers(query = "", page = 0): Promise<Result<{ user
   return { success: true, users: slice.map((p) => { const outgoing = reqs.some((r) => r.from_user_id === a.userId && r.to_user_id === p.id); return { ...p, display_name: p.display_name ?? p.full_name, hasPending: outgoing, incomingPending: reqs.some((r) => r.from_user_id === p.id && r.to_user_id === a.userId) }; }), hasMore: start + 20 < filtered.length };
 }
 
-export async function sendConnectionRequest(toUserId: string): Promise<Result<{}>> {
+export async function sendConnectionRequest(toUserId: string, relationshipType: RelationshipType = "romantic"): Promise<Result<{}>> {
   const a = await auth(); if (!a) return { success: false, error: "Not authenticated." }; if (toUserId === a.userId) return { success: false, error: "You cannot connect with yourself." };
   const service = await createServiceClient();
   const { data: existing } = await service.from("connection_requests").select("id,status").or(`and(from_user_id.eq.${a.userId},to_user_id.eq.${toUserId}),and(from_user_id.eq.${toUserId},to_user_id.eq.${a.userId})`).eq("status", "pending").maybeSingle();
   if (existing) return { success: false, error: "A request is already pending." };
-  const { error } = await service.from("connection_requests").insert({ from_user_id: a.userId, to_user_id: toUserId });
+  const { error } = await service.from("connection_requests").insert({ from_user_id: a.userId, to_user_id: toUserId, relationship_type: relationshipType });
   if (error) return { success: false, error: error.message };
   const { data: profile } = await service.from("profiles").select("display_name,full_name").eq("id", a.userId).maybeSingle();
   const name = profile?.display_name ?? profile?.full_name ?? "Someone";
@@ -65,13 +66,14 @@ export async function getConnectionRequests(): Promise<Result<{ incoming: Connec
 
 export async function respondToConnectionRequest(requestId: string, accept: boolean): Promise<Result<{ pairingId?: string }>> {
   const a = await auth(); if (!a) return { success: false, error: "Not authenticated." };
-  const service = await createServiceClient(); const { data: req } = await service.from("connection_requests").select("id,from_user_id,to_user_id,status").eq("id", requestId).eq("to_user_id", a.userId).single();
+  const service = await createServiceClient(); const { data: req } = await service.from("connection_requests").select("id,from_user_id,to_user_id,status,relationship_type").eq("id", requestId).eq("to_user_id", a.userId).single();
   if (!req || req.status !== "pending") return { success: false, error: "Request not found or already handled." };
   const status = accept ? "accepted" : "declined"; const { error } = await service.from("connection_requests").update({ status }).eq("id", requestId); if (error) return { success: false, error: error.message };
   if (!accept) return { success: true };
+  const relationshipType: RelationshipType = (req.relationship_type === "platonic" ? "platonic" : "romantic");
   const [fromResults, toResults] = await Promise.all([latestResults(service, req.from_user_id), latestResults(service, req.to_user_id)]); if (!fromResults || !toResults) return { success: false, error: "Both users must have completed their Blueprint." };
   const alignmentResults = computeAlignment(fromResults, toResults);
-  const { data: pairing, error: pairingError } = await service.from("pairings").insert({ invite_code: crypto.randomUUID().slice(0, 8), inviter_user_id: req.from_user_id, inviter_session_id: fromResults.sessionId, invitee_user_id: req.to_user_id, invitee_session_id: toResults.sessionId, status: "completed", alignment_results: alignmentResults }).select("id").single();
+  const { data: pairing, error: pairingError } = await service.from("pairings").insert({ invite_code: crypto.randomUUID().slice(0, 8), inviter_user_id: req.from_user_id, inviter_session_id: fromResults.sessionId, invitee_user_id: req.to_user_id, invitee_session_id: toResults.sessionId, status: "completed", relationship_type: relationshipType, alignment_results: alignmentResults }).select("id").single();
   if (pairingError || !pairing) return { success: false, error: pairingError?.message ?? "Failed to create pairing." };
 
   // Generate the report after pairing creation; a report failure must not undo acceptance.

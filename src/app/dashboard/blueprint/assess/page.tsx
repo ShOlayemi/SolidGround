@@ -3,6 +3,7 @@ import { getOrCreateSession, getAnswers } from "@/lib/assessment/actions";
 import { BlueprintWizardLazy } from "@/components/assessment/BlueprintWizardLazy";
 import { AnalyticsPageView } from "@/components/analytics/PageView";
 import { CATEGORY_ORDER } from "@/lib/assessment/questions";
+import type { RelationshipType } from "@/types";
 
 import type { Metadata } from "next";
 export const metadata: Metadata = {
@@ -10,13 +11,14 @@ export const metadata: Metadata = {
   description: "Complete your Compatibility Blueprint™ assessment.",
 };
 interface AssessPageProps {
-  searchParams: Promise<{ inviteCode?: string }>;
+  searchParams: Promise<{ inviteCode?: string; mode?: string }>;
 }
 
 export default async function AssessPage({ searchParams }: AssessPageProps) {
-  const { inviteCode } = await searchParams;
+  const { inviteCode, mode: modeParam } = await searchParams;
+  const mode: RelationshipType = (modeParam === "platonic" ? "platonic" : "romantic");
   // Get or create session
-  const sessionResult = await getOrCreateSession();
+  const sessionResult = await getOrCreateSession(mode);
 
   if (!sessionResult.success || !sessionResult.session) {
     return (

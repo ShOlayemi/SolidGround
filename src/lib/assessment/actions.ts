@@ -111,8 +111,9 @@ function validateAnswer(
  * Get or create an active assessment session for the current user.
  * Returns the existing in-progress/not-started session, or creates a new one
  * if only completed sessions exist.
+ * When creating a new session, `mode` controls the relationship type (default "romantic").
  */
-export async function getOrCreateSession(): Promise<{
+export async function getOrCreateSession(mode: RelationshipType = "romantic"): Promise<{
   success: boolean;
   session?: AssessmentSession;
   error?: string;
@@ -147,6 +148,7 @@ export async function getOrCreateSession(): Promise<{
     .insert({
       user_id: userId,
       status: "in_progress",
+      mode,
       current_dimension: CATEGORY_ORDER[0],
       current_question_index: 0,
       total_questions_answered: 0,
@@ -405,8 +407,9 @@ export async function getAssessmentProgress(): Promise<{
 /**
  * Abandon all active (not_started / in_progress) sessions for the current user
  * and create a fresh session. Returns the new session ready for assessment.
+ * `mode` controls the relationship type for the new session (default "romantic").
  */
-export async function resetSession(): Promise<{
+export async function resetSession(mode: RelationshipType = "romantic"): Promise<{
   success: boolean;
   session?: AssessmentSession;
   error?: string;
@@ -453,6 +456,7 @@ export async function resetSession(): Promise<{
     .insert({
       user_id: userId,
       status: "in_progress",
+      mode,
       current_dimension: CATEGORY_ORDER[0],
       current_question_index: 0,
       total_questions_answered: 0,
