@@ -8,7 +8,7 @@ import type { AdminStats, AdminProfile, UserRole } from "@/types";
 
 export async function getAdminStats(): Promise<AdminStats> {
   await requireAdmin("support");
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
@@ -208,8 +208,9 @@ export async function makeAdmin(): Promise<{ success: boolean; error?: string }>
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Not authenticated" };
 
-    // Check if any admin already exists
-    const { count } = await supabase
+    // Check if any admin already exists — use service client to bypass RLS
+    const serviceClient = await createServiceClient();
+    const { count } = await serviceClient
       .from("profiles")
       .select("*", { count: "exact", head: true })
       .eq("role", "admin");
@@ -225,7 +226,8 @@ export async function makeAdmin(): Promise<{ success: boolean; error?: string }>
 
     if (error) return { success: false, error: error.message };
 
-    await supabase.from("admin_audit_log").insert({
+    // Use service client for audit insert (migration 026 dropped anon-key INSERT policy)
+    await serviceClient.from("admin_audit_log").insert({
       admin_user_id: user.id,
       action: "first_admin_bootstrap",
       target_type: "profile",
@@ -241,7 +243,7 @@ export async function makeAdmin(): Promise<{ success: boolean; error?: string }>
 // ── hasExistingAdmin ──────────────────────────────────────────
 
 export async function hasExistingAdmin(): Promise<boolean> {
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
   const { count } = await supabase
     .from("profiles")
     .select("*", { count: "exact", head: true })
