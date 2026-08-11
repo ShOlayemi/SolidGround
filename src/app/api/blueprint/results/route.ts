@@ -20,9 +20,14 @@
 //                      RLS applies exactly as for the web app's own
 //                      cookie-authenticated requests.
 //
-// Flow: authenticate → latest completed session → existing results row
-// (return as-is) OR compute on demand with the existing engine, upsert
-// the results row (onConflict "session_id"), and return the JSON.
+// Flow: authenticate → latest completed session → fetch the session's
+// answers → recompute on EVERY request with the existing engine →
+// upsert the results row (onConflict "session_id") and return the JSON.
+// Freshness semantics: results are recomputed on every request —
+// deterministic pure math over ≤88 answers, negligible cost — so the
+// displayed results always match the user's latest saved answers (e.g.
+// after the mobile "edit answers" flow re-saves answers for a completed
+// session, the next GET returns the updated results, never a stale row).
 // No side effects beyond the results upsert (no emails, notifications,
 // or audit rows).
 //
@@ -115,33 +120,11 @@ export async function GET(request: Request) {
   }
   const sessionId: string = session.id;
 
-  // 4. Existing results row → return as-is (no recompute).
-  const { data: row, error: rowError } = await supabase
-    .from("blueprint_results")
-    .select("session_id, user_id, category_results, overall_score, overall_confidence, created_at, updated_at")
-    .eq("session_id", sessionId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (rowError) {
-    console.error("[api/blueprint/results] Results query error:", rowError.message);
-    return json({ error: "Failed to load results." }, 500);
-  }
-
-  if (row) {
-    const results: BlueprintResults = {
-      sessionId: row.session_id,
-      userId: row.user_id,
-      categoryResults: row.category_results,
-      overallScore: row.overall_score,
-      overallConfidence: row.overall_confidence,
-      completedAt: row.updated_at ?? row.created_at,
-    };
-    return json(results, 200);
-  }
-
-  // 5. No results row yet → fetch answers and compute on demand with
-  //    the existing engine, then persist (mirrors computeResults()).
+  // 4. Fetch the session's answers and recompute on every request so
+  //    the returned results always match the latest saved answers
+  //    (mirrors computeResults()). computeBlueprintResults handles
+  //    missing answers (neutral 50 per category), so a completed
+  //    session with zero answers still yields valid results.
   const { data: answers, error: answersError } = await supabase
     .from("assessment_answers")
     .select("id, session_id, question_id, category, answer, created_at, updated_at")
@@ -150,9 +133,6 @@ export async function GET(request: Request) {
   if (answersError) {
     console.error("[api/blueprint/results] Answers query error:", answersError.message);
     return json({ error: "Failed to load results." }, 500);
-  }
-  if (!answers || answers.length === 0) {
-    return json({ error: "Results not available. Complete the assessment first." }, 404);
   }
 
   const results = computeBlueprintResults(
@@ -183,6 +163,6 @@ export async function GET(request: Request) {
     return json({ error: "Failed to store results." }, 500);
   }
 
-  // 6. Return the computed results as JSON.
+  // 5. Return the computed results as JSON.
   return json(results, 200);
 }
