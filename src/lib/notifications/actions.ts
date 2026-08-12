@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type NotificationType = "partner_invite" | "invite_accepted" | "connection_request" | "connection_accepted" | "assessment_complete" | "subscription" | "system";
@@ -52,7 +52,15 @@ export async function createNotification(userId: string, type: NotificationType,
   const inApp = (prefs?.notification_preferences as Partial<NotificationPreferences> | null)?.in_app;
   if (inApp && inApp[type] === false) return { success: true };
   if (userId !== auth.userId) {
-    const { data: notificationId, error } = await auth.supabase.rpc("create_notification_for_user", { target_user_id: userId, notification_type: type, notification_title: title, notification_message: message, notification_data: data ?? null });
+    // Cross-user notification: use the SERVICE client, never the caller's
+    // session client. Migration 036 (F2) revokes EXECUTE on
+    // create_notification_for_user from authenticated/anon — the RPC is
+    // service-role-only, so any client-side caller would start failing
+    // once that migration is applied. Mirrors mobile-api.ts
+    // notifyInviteAccepted(). SECURITY DEFINER RPC, so the insert itself
+    // still works for the service role.
+    const service = await createServiceClient();
+    const { data: notificationId, error } = await service.rpc("create_notification_for_user", { target_user_id: userId, notification_type: type, notification_title: title, notification_message: message, notification_data: data ?? null });
     return error ? { success: false, error: error.message } : { success: true, ...(notificationId ? { notification: { id: notificationId } as Notification } : {}) };
   }
   const { data: notification, error } = await auth.supabase.from("notifications").insert({ user_id: userId, type, title, message, data: data ?? null }).select("id, user_id, type, title, message, data, read, created_at").single();
