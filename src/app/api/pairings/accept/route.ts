@@ -46,6 +46,7 @@ import {
   optionsResponse,
   saveComparisonReport,
 } from "@/lib/pairings/mobile-api";
+import { pairingIsBlocked } from "@/lib/pairings/blocked";
 import type { BlueprintResults } from "@/lib/scoring/types";
 
 export const runtime = "nodejs";
@@ -117,7 +118,24 @@ export async function POST(request: Request) {
     return json({ error: "You cannot accept your own invite." }, 400);
   }
 
-  // 4. Invitation lifecycle check. An invite created before migration 034
+  // 4. Blocked-user enforcement (Sprint 8 §7, migration 036). The
+  //    service client bypasses RLS, so the route must enforce blocking
+  //    itself. A block in EITHER direction makes the pairing invisible:
+  //    respond with the same generic copy as an unavailable invite so
+  //    the caller can never learn a block exists. Fail closed on RPC
+  //    error via the normal 500 path.
+  let isBlocked: boolean;
+  try {
+    isBlocked = await pairingIsBlocked(service, p.id);
+  } catch (err) {
+    console.error("[api/pairings/accept] Block check error:", err);
+    return json({ error: "Failed to load invite." }, 500);
+  }
+  if (isBlocked) {
+    return json({ error: "This invite is no longer available." }, 400);
+  }
+
+  // 5. Invitation lifecycle check. An invite created before migration 034
   //    has no lifecycle row (the web app's createInvite never writes
   //    pairing_invitations), so accept works for both cases:
   //      row exists  → must be pending and not expired, then marked accepted.
@@ -144,7 +162,7 @@ export async function POST(request: Request) {
     }
   }
 
-  // 5. Invitee's latest completed assessment session + blueprint results
+  // 6. Invitee's latest completed assessment session + blueprint results
   //    (token-bound client: RLS scopes these to the caller's own rows).
   const { data: completedSession } = await supabase
     .from("assessment_sessions")
@@ -162,7 +180,7 @@ export async function POST(request: Request) {
     return json({ error: "Your results are not ready. Please compute your blueprint first." }, 400);
   }
 
-  // 6. Inviter's results: prefer the results embedded in the pairing at
+  // 7. Inviter's results: prefer the results embedded in the pairing at
   //    invite creation (avoids cross-user blueprint_results RLS), falling
   //    back to a service-client read for pre-existing pairings.
   let inviterResultsData = (
@@ -207,7 +225,7 @@ export async function POST(request: Request) {
     completedAt: inviterResultsData.completedAt,
   };
 
-  // 7. Compute alignment and complete the pairing (service client — the
+  // 8. Compute alignment and complete the pairing (service client — the
   //    invitee is not yet in the RLS UPDATE policy).
   const alignmentResults = computeAlignment(inviterResults, inviteeResults);
   const { error: updateError } = await service
@@ -224,7 +242,7 @@ export async function POST(request: Request) {
     return json({ error: "Failed to accept invite." }, 500);
   }
 
-  // 8. Invitation lifecycle: mark accepted (or backfill for legacy invites).
+  // 9. Invitation lifecycle: mark accepted (or backfill for legacy invites).
   const nowIso = new Date().toISOString();
   if (invitation) {
     const { error: invUpdateError } = await service
@@ -249,11 +267,11 @@ export async function POST(request: Request) {
     }
   }
 
-  // 9. Generate + upsert the comparison report (non-fatal on failure —
+  // 10. Generate + upsert the comparison report (non-fatal on failure —
   //    the pairing is still accepted and the report can be regenerated).
   await saveComparisonReport(p.id, inviterResults, inviteeResults);
 
-  // 10. Notification + audit (non-fatal).
+  // 11. Notification + audit (non-fatal).
   const relationshipType = p.relationship_type === "platonic" ? "platonic" : "romantic";
   await notifyInviteAccepted(p.inviter_user_id, relationshipType, p.id);
   await auditLog(userId, "pairing.accept", "pairings", p.id, {
@@ -261,6 +279,6 @@ export async function POST(request: Request) {
     overall_alignment: alignmentResults.overallAlignment,
   });
 
-  // 11. Minimal response — never echo pairing contents back to the client.
+  // 12. Minimal response — never echo pairing contents back to the client.
   return json({ success: true, pairingId: p.id }, 200);
 }
