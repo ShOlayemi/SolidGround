@@ -32,6 +32,7 @@ import {
   json,
   optionsResponse,
 } from "@/lib/pairings/mobile-api";
+import { pairingIsBlocked } from "@/lib/pairings/blocked";
 
 export const runtime = "nodejs";
 
@@ -81,7 +82,24 @@ export async function POST(request: Request) {
     return json({ error: "You are not a partner in this pairing." }, 403);
   }
 
-  // 4. Delete the pairing (service client — no DELETE policy exists for
+  // 4. Blocked-user enforcement (Sprint 8 §7, migration 036). The
+  //    service client bypasses RLS, so the route must enforce blocking
+  //    itself. A block in EITHER direction makes the pairing invisible:
+  //    respond with the same not-found copy as a missing pairing so the
+  //    caller can never learn a block exists. Fail closed on RPC error
+  //    via the normal 500 path.
+  let isBlocked: boolean;
+  try {
+    isBlocked = await pairingIsBlocked(service, pairing.id);
+  } catch (err) {
+    console.error("[api/pairings/disconnect] Block check error:", err);
+    return json({ error: "Failed to disconnect." }, 500);
+  }
+  if (isBlocked) {
+    return json({ error: "Pairing not found." }, 404);
+  }
+
+  // 5. Delete the pairing (service client — no DELETE policy exists for
   //    client-side calls). ON DELETE CASCADE removes messages, comparison
   //    reports, and invitation lifecycle rows. Blueprint/assessment data
   //    is never deleted.
@@ -94,7 +112,7 @@ export async function POST(request: Request) {
     return json({ error: "Failed to disconnect." }, 500);
   }
 
-  // 5. Audit (non-fatal).
+  // 6. Audit (non-fatal).
   await auditLog(userId, "pairing.disconnect", "pairings", pairingId, {});
 
   return json({ success: true }, 200);

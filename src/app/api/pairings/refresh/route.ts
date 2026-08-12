@@ -37,6 +37,7 @@ import {
   resolveLatestCompletedSession,
   saveComparisonReport,
 } from "@/lib/pairings/mobile-api";
+import { pairingIsBlocked } from "@/lib/pairings/blocked";
 
 export const runtime = "nodejs";
 
@@ -93,11 +94,28 @@ export async function POST(request: Request) {
   if (p.inviter_user_id !== userId && p.invitee_user_id !== userId) {
     return json({ error: "You are not a partner in this pairing." }, 403);
   }
+
+  // 4. Blocked-user enforcement (Sprint 8 §7, migration 036). The
+  //    service client bypasses RLS, so the route must enforce blocking
+  //    itself. A block in EITHER direction makes the pairing invisible:
+  //    respond with the same not-found copy as a missing pairing so the
+  //    caller can never learn a block exists. Fail closed on RPC error
+  //    via the normal 500 path.
+  let isBlocked: boolean;
+  try {
+    isBlocked = await pairingIsBlocked(service, p.id);
+  } catch (err) {
+    console.error("[api/pairings/refresh] Block check error:", err);
+    return json({ error: "Failed to refresh comparison report." }, 500);
+  }
+  if (isBlocked) {
+    return json({ error: "Pairing not found." }, 404);
+  }
   if (!p.invitee_user_id || !p.invitee_session_id || p.status !== "completed") {
     return json({ error: "This pairing has not been accepted yet." }, 400);
   }
 
-  // 4. Resolve each partner's most recent completed assessment session so
+  // 5. Resolve each partner's most recent completed assessment session so
   //    a retaken assessment is reflected; fall back to pinned sessions.
   const inviterSessionId = await resolveLatestCompletedSession(
     service,
@@ -113,7 +131,7 @@ export async function POST(request: Request) {
     return json({ error: "Blueprint results are not available for both partners." }, 400);
   }
 
-  // 5. Fetch both partners' results via the service client (cross-user
+  // 6. Fetch both partners' results via the service client (cross-user
   //    blueprint_results reads are blocked by RLS).
   const inviterResults = await getSessionResults(service, inviterSessionId, p.inviter_user_id);
   const inviteeResults = await getSessionResults(service, inviteeSessionId, p.invitee_user_id);
@@ -121,13 +139,13 @@ export async function POST(request: Request) {
     return json({ error: "Blueprint results are not available for both partners." }, 400);
   }
 
-  // 6. Regenerate the report and upsert it.
+  // 7. Regenerate the report and upsert it.
   const saved = await saveComparisonReport(p.id, inviterResults, inviteeResults);
   if (!saved.ok || !saved.report) {
     return json({ error: saved.error ?? "Failed to refresh comparison report." }, 500);
   }
 
-  // 7. Refresh the pairing's alignment_results to match.
+  // 8. Refresh the pairing's alignment_results to match.
   const alignmentResults = computeAlignment(inviterResults, inviteeResults);
   const { error: alignmentError } = await service
     .from("pairings")
@@ -139,12 +157,12 @@ export async function POST(request: Request) {
     // best-effort and can be fixed by the next refresh.
   }
 
-  // 8. Audit (non-fatal).
+  // 9. Audit (non-fatal).
   await auditLog(userId, "comparison_report.refresh", "comparison_reports", p.id, {
     overall_compatibility: saved.report.overallCompatibility,
   });
 
-  // 9. Return the fresh report so the mobile client can render it without
+  // 10. Return the fresh report so the mobile client can render it without
   //    an extra read.
   return json({ success: true, pairingId: p.id, report: saved.report }, 200);
 }
