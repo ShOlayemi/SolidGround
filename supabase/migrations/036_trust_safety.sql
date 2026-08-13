@@ -57,6 +57,10 @@
 -- the narrowed pairings/invitations policies (blocked enforcement).
 -- No table is dropped, no data is deleted, Blueprint tables/scoring
 -- are untouched.
+--
+-- FULLY RE-RUNNABLE (2026-08-13): every CREATE POLICY is preceded by
+-- DROP POLICY IF EXISTS and the trigger by DROP TRIGGER IF EXISTS, so
+-- re-applying after a partial or already-complete run is safe.
 -- ============================================================
 
 -- ============================================================
@@ -77,18 +81,25 @@ CREATE TABLE IF NOT EXISTS shared_agreements (
 CREATE INDEX IF NOT EXISTS idx_shared_agreements_pairing_status
   ON shared_agreements(pairing_id, status);
 -- Updated-at trigger (repo convention; function from migration 005).
+-- DROP-guarded so the whole script is re-runnable (owner hit 42710 on a
+-- second run — the trigger already existed).
+DROP TRIGGER IF EXISTS set_shared_agreements_updated_at ON shared_agreements;
 CREATE TRIGGER set_shared_agreements_updated_at BEFORE UPDATE ON shared_agreements
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ALTER TABLE shared_agreements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Partners read their shared agreements" ON shared_agreements;
 CREATE POLICY "Partners read their shared agreements" ON shared_agreements FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM pairings p WHERE p.id = shared_agreements.pairing_id
     AND (p.inviter_user_id = auth.uid() OR p.invitee_user_id = auth.uid())));
+DROP POLICY IF EXISTS "Partners create shared agreements" ON shared_agreements;
 CREATE POLICY "Partners create shared agreements" ON shared_agreements FOR INSERT TO authenticated
   WITH CHECK (created_by = auth.uid() AND EXISTS (SELECT 1 FROM pairings p WHERE p.id = shared_agreements.pairing_id
     AND (p.inviter_user_id = auth.uid() OR p.invitee_user_id = auth.uid())));
+DROP POLICY IF EXISTS "Partners update shared agreements" ON shared_agreements;
 CREATE POLICY "Partners update shared agreements" ON shared_agreements FOR UPDATE TO authenticated
   USING (EXISTS (SELECT 1 FROM pairings p WHERE p.id = shared_agreements.pairing_id
     AND (p.inviter_user_id = auth.uid() OR p.invitee_user_id = auth.uid())));
+DROP POLICY IF EXISTS "Partners delete shared agreements" ON shared_agreements;
 CREATE POLICY "Partners delete shared agreements" ON shared_agreements FOR DELETE TO authenticated
   USING (EXISTS (SELECT 1 FROM pairings p WHERE p.id = shared_agreements.pairing_id
     AND (p.inviter_user_id = auth.uid() OR p.invitee_user_id = auth.uid())));
@@ -111,8 +122,11 @@ CREATE TABLE IF NOT EXISTS blocked_users (
 CREATE INDEX IF NOT EXISTS idx_blocked_users_blocked
   ON blocked_users(blocked_user_id);
 ALTER TABLE blocked_users ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users read own blocks" ON blocked_users;
 CREATE POLICY "Users read own blocks" ON blocked_users FOR SELECT TO authenticated USING (blocker_user_id = auth.uid());
+DROP POLICY IF EXISTS "Users create own blocks" ON blocked_users;
 CREATE POLICY "Users create own blocks" ON blocked_users FOR INSERT TO authenticated WITH CHECK (blocker_user_id = auth.uid());
+DROP POLICY IF EXISTS "Users delete own blocks" ON blocked_users;
 CREATE POLICY "Users delete own blocks" ON blocked_users FOR DELETE TO authenticated USING (blocker_user_id = auth.uid());
 -- Only the blocker can manage their own block list; no UPDATE policy.
 
@@ -159,7 +173,9 @@ CREATE TABLE IF NOT EXISTS reports (
 CREATE INDEX IF NOT EXISTS idx_reports_reporter ON reports(reporter_user_id);
 CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status); -- moderation queue (service role)
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users read own reports" ON reports;
 CREATE POLICY "Users read own reports" ON reports FOR SELECT TO authenticated USING (reporter_user_id = auth.uid());
+DROP POLICY IF EXISTS "Users create own reports" ON reports;
 CREATE POLICY "Users create own reports" ON reports FOR INSERT TO authenticated WITH CHECK (reporter_user_id = auth.uid());
 -- NO UPDATE/DELETE policies: status changes (open/reviewed/actioned/dismissed)
 -- are service-role only, like admin_audit_log (017/023/026 pattern).
@@ -184,6 +200,7 @@ GRANT EXECUTE ON FUNCTION public.create_notification_for_user(UUID, TEXT, TEXT, 
 -- rename) if present, then recreate as a participant-checked insert
 -- mirroring the SELECT policy expression verbatim.
 DROP POLICY IF EXISTS "Service inserts comparison reports" ON comparison_reports;
+DROP POLICY IF EXISTS "Partners can insert own report" ON comparison_reports;
 DROP POLICY IF EXISTS "Partners can insert own report" ON comparison_reports;
 CREATE POLICY "Partners can insert own report" ON comparison_reports
   FOR INSERT TO authenticated
