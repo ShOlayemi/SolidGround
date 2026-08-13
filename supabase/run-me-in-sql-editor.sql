@@ -605,6 +605,11 @@ AS $$
   );
 $$;
 REVOKE ALL ON FUNCTION public.pairing_is_blocked(uuid) FROM PUBLIC;
+-- Supabase grants EXECUTE on newly created functions to client roles
+-- (anon/authenticated) at creation, so anon must be revoked explicitly —
+-- REVOKE ... FROM PUBLIC alone leaves anon with EXECUTE (smoke check
+-- 2026-08-13 flagged anon EXECUTE on this function).
+REVOKE EXECUTE ON FUNCTION public.pairing_is_blocked(uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.pairing_is_blocked(uuid) TO authenticated;
 
 -- ============================================================
