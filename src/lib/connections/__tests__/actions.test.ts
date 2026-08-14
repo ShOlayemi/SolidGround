@@ -44,6 +44,10 @@ function seedRequest(status: "pending" | "accepted" | "declined" = "pending", re
   }]);
 }
 
+function seedBlock(blockerUserId: string, blockedUserId: string): void {
+  mockSupabase.seed("blocked_users", [{ blocker_user_id: blockerUserId, blocked_user_id: blockedUserId }]);
+}
+
 describe("connection actions", () => {
   beforeEach(() => mockSupabase.reset());
 
@@ -72,6 +76,36 @@ describe("connection actions", () => {
     });
   });
 
+  it("sendConnectionRequest refuses when the recipient has blocked the sender", async () => {
+    mockSupabase.setSession(USER_A);
+    seedBlock(USER_B, USER_A); // B blocked A
+
+    const result = await sendConnectionRequest(USER_B);
+
+    expect(result).toEqual({ success: false, error: "This user is no longer available." });
+    expect(mockSupabase.tables.connection_requests ?? []).toHaveLength(0);
+  });
+
+  it("sendConnectionRequest refuses when the sender has blocked the recipient", async () => {
+    mockSupabase.setSession(USER_A);
+    seedBlock(USER_A, USER_B); // A blocked B
+
+    const result = await sendConnectionRequest(USER_B);
+
+    expect(result).toEqual({ success: false, error: "This user is no longer available." });
+    expect(mockSupabase.tables.connection_requests ?? []).toHaveLength(0);
+  });
+
+  it("sendConnectionRequest fails closed when the block check errors", async () => {
+    mockSupabase.setSession(USER_A);
+    mockSupabase.failTable("blocked_users", "db exploded");
+
+    const result = await sendConnectionRequest(USER_B);
+
+    expect(result).toEqual({ success: false, error: "Could not send request." });
+    expect(mockSupabase.tables.connection_requests ?? []).toHaveLength(0);
+  });
+
   it("getConnectionRequests returns incoming requests", async () => {
     mockSupabase.setSession(USER_B);
     seedRequest();
@@ -86,6 +120,42 @@ describe("connection actions", () => {
     expect(result.incoming).toHaveLength(1);
     expect(result.incoming[0]).toMatchObject({ id: REQUEST_ID, from_user_id: USER_A, from_name: "Alex" });
     expect(result.unreadCount).toBe(1);
+  });
+
+  it("respondToConnectionRequest refuses when the recipient has blocked the sender", async () => {
+    mockSupabase.setSession(USER_B);
+    seedRequest();
+    seedBlock(USER_B, USER_A); // B (recipient/responder) blocked A (sender)
+
+    const result = await respondToConnectionRequest(REQUEST_ID, true);
+
+    expect(result).toEqual({ success: false, error: "This request is no longer available." });
+    expect(mockSupabase.tables.connection_requests[0].status).toBe("pending");
+    expect(mockSupabase.tables.pairings ?? []).toHaveLength(0);
+  });
+
+  it("respondToConnectionRequest refuses when the sender has blocked the recipient", async () => {
+    mockSupabase.setSession(USER_B);
+    seedRequest();
+    seedBlock(USER_A, USER_B); // A (sender) blocked B (recipient/responder)
+
+    const result = await respondToConnectionRequest(REQUEST_ID, true);
+
+    expect(result).toEqual({ success: false, error: "This request is no longer available." });
+    expect(mockSupabase.tables.connection_requests[0].status).toBe("pending");
+    expect(mockSupabase.tables.pairings ?? []).toHaveLength(0);
+  });
+
+  it("respondToConnectionRequest fails closed when the block check errors", async () => {
+    mockSupabase.setSession(USER_B);
+    seedRequest();
+    mockSupabase.failTable("blocked_users", "db exploded");
+
+    const result = await respondToConnectionRequest(REQUEST_ID, true);
+
+    expect(result).toEqual({ success: false, error: "Could not update request." });
+    expect(mockSupabase.tables.connection_requests[0].status).toBe("pending");
+    expect(mockSupabase.tables.pairings ?? []).toHaveLength(0);
   });
 
   it("respondToConnectionRequest with accept creates pairing and updates status", async () => {
