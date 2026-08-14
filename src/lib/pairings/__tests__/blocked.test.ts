@@ -11,7 +11,7 @@
 // Runner: `bun test` (the repo's suite; vitest-style imports).
 // ──────────────────────────────────────────────────────────────
 import { describe, it, expect } from "vitest";
-import { pairingIsBlocked } from "../blocked";
+import { pairingIsBlocked, usersAreBlocked } from "../blocked";
 
 type RpcResult = { data?: unknown; error?: { message: string } | null };
 
@@ -57,5 +57,47 @@ describe("pairingIsBlocked", () => {
     await expect(
       pairingIsBlocked(fakeServiceClient({ error: { message: "rpc exploded" } }), "pairing-1"),
     ).rejects.toThrow(/pairing_is_blocked RPC failed/);
+  });
+});
+
+describe("usersAreBlocked", () => {
+  /** Record of or() clauses so tests can assert both directions are queried. */
+  const orCalls: string[] = [];
+
+  function fakeBlockedTableClient(result: { count?: number | null; error?: { message: string } | null }) {
+    const builder = {
+      select: () => builder,
+      or: (raw: string) => {
+        orCalls.push(raw);
+        return builder;
+      },
+      then: (resolve?: (value: unknown) => unknown) =>
+        Promise.resolve({ data: [], error: result.error ?? null, count: result.count ?? 0 }).then(resolve),
+    };
+    return { from: () => builder } as never;
+  }
+
+  it("returns true when a block row exists between the two users", async () => {
+    const blocked = await usersAreBlocked(fakeBlockedTableClient({ count: 1 }), "user-a", "user-b");
+    expect(blocked).toBe(true);
+  });
+
+  it("returns false when no block row exists", async () => {
+    const blocked = await usersAreBlocked(fakeBlockedTableClient({ count: 0 }), "user-a", "user-b");
+    expect(blocked).toBe(false);
+  });
+
+  it("queries blocked_users for BOTH directions (A→B or B→A)", async () => {
+    orCalls.length = 0;
+    await usersAreBlocked(fakeBlockedTableClient({ count: 0 }), "user-a", "user-b");
+    expect(orCalls).toHaveLength(1);
+    expect(orCalls[0]).toContain("and(blocker_user_id.eq.user-a,blocked_user_id.eq.user-b)");
+    expect(orCalls[0]).toContain("and(blocker_user_id.eq.user-b,blocked_user_id.eq.user-a)");
+  });
+
+  it("throws (fail closed) when the query errors", async () => {
+    await expect(
+      usersAreBlocked(fakeBlockedTableClient({ error: { message: "db exploded" } }), "user-a", "user-b"),
+    ).rejects.toThrow(/blocked_users check failed/);
   });
 });

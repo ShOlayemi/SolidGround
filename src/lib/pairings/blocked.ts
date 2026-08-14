@@ -38,3 +38,30 @@ export async function pairingIsBlocked(
   }
   return data === true;
 }
+
+/**
+ * True when a block exists between two users, in EITHER direction.
+ * Variant of pairingIsBlocked for paths that have no pairing yet (e.g.
+ * the Discover connection-request flow). Queries blocked_users directly
+ * for the (A→B) OR (B→A) pair with the service client, which bypasses
+ * RLS — a user client could not do this inline because blocked_users
+ * RLS only exposes the caller's OWN blocks, hiding "the other user
+ * blocked me". Returns only a boolean; no user data is read into the
+ * app. Throws on query error so callers fail closed.
+ */
+export async function usersAreBlocked(
+  serviceClient: SupabaseClient,
+  userIdA: string,
+  userIdB: string,
+): Promise<boolean> {
+  const { count, error } = await serviceClient
+    .from("blocked_users")
+    .select("blocker_user_id", { count: "exact", head: true })
+    .or(
+      `and(blocker_user_id.eq.${userIdA},blocked_user_id.eq.${userIdB}),and(blocker_user_id.eq.${userIdB},blocked_user_id.eq.${userIdA})`,
+    );
+  if (error) {
+    throw new Error(`blocked_users check failed: ${error.message}`);
+  }
+  return (count ?? 0) > 0;
+}

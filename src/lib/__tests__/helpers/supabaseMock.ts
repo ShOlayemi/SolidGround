@@ -41,13 +41,44 @@ type QueryResult = {
   count?: number | null;
 };
 
+/** Split an `or` clause on top-level commas (ignores commas inside `and(...)` groups). */
+function splitTopLevel(raw: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    else if (ch === "," && depth === 0) {
+      parts.push(raw.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(raw.slice(start));
+  return parts;
+}
+
+/** Match a single `col.op.value` condition. */
+function conditionMatches(row: Row, condition: string): boolean {
+  const [col, op, ...rest] = condition.split(".");
+  if (op !== "eq") return false;
+  return row[col] === rest.join(".");
+}
+
+/** Match an `and(...)` group: every inner condition must match. */
+function andGroupMatches(row: Row, group: string): boolean {
+  const inner = group.match(/^and\((.*)\)$/);
+  if (!inner) return false;
+  return inner[1].split(",").every((cond) => conditionMatches(row, cond));
+}
+
 /** Parse a supabase `or` clause like "inviter_user_id.eq.x,invitee_user_id.eq.y". */
 function orMatches(row: Row, raw: string): boolean {
-  return raw.split(",").some((part) => {
-    const [col, op, ...rest] = part.split(".");
-    const value = rest.join(".");
-    if (op === "eq") return row[col] === value;
-    return false;
+  return splitTopLevel(raw).some((part) => {
+    const trimmed = part.trim();
+    if (trimmed.startsWith("and(")) return andGroupMatches(row, trimmed);
+    return conditionMatches(row, trimmed);
   });
 }
 
