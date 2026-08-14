@@ -8,6 +8,7 @@ import { getMyPairings } from "@/lib/pairings/actions";
 import { getDashboardData } from "@/lib/dashboard/actions";
 import { Button } from "@/components/ui/Button";
 import { InvitePartner } from "@/components/dashboard/InvitePartner";
+import { isPartnerDeletedPairing } from "@/lib/pairings/pairingDeleted";
 
 import type { Metadata } from "next";
 export const metadata: Metadata = {
@@ -76,36 +77,36 @@ export default async function PairingsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {pairings.map((pairing) => (
-            <Link
-              key={pairing.id}
-              href={
-                pairing.status === "completed"
-                  ? `/dashboard/pairings/${pairing.id}`
-                  : "#"
-              }
-              className={`block bg-solid-surface border border-solid-border rounded-xl p-5 transition-colors ${
-                pairing.status === "completed"
-                  ? "hover:border-solid-accent/30 cursor-pointer"
-                  : "opacity-70 cursor-default"
-              }`}
-            >
+          {pairings.map((pairing) => {
+            // Sprint 8 live-test fix: the other participant deleted their
+            // account — pairings.invitee_user_id is ON DELETE SET NULL
+            // (migration 008), so the row survives but the partner is gone.
+            // Never render it as a live match or link to one.
+            const deleted = isPartnerDeletedPairing(pairing);
+            const card = (
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-[15px] font-semibold text-solid-text truncate">
-                    {pairing.inviter_name}
-                    {pairing.invitee_name ? ` & ${pairing.invitee_name}` : ""}
+                    {deleted
+                      ? "Connection no longer active"
+                      : `${pairing.inviter_name}${pairing.invitee_name ? ` & ${pairing.invitee_name}` : ""}`}
                   </p>
                   <p className="text-[13px] text-solid-text-secondary mt-0.5">
-                    {pairing.status === "completed"
-                      ? `Alignment: ${pairing.alignment_results?.overallAlignment ?? "—"}%`
-                      : pairing.status === "accepted"
-                        ? "Accepted — computing..."
-                        : "Pending — waiting for partner"}
+                    {deleted
+                      ? "Your partner deleted their account, so this pairing and its Alignment Match™ are no longer available."
+                      : pairing.status === "completed"
+                        ? `Alignment: ${pairing.alignment_results?.overallAlignment ?? "—"}%`
+                        : pairing.status === "accepted"
+                          ? "Accepted — computing..."
+                          : "Pending — waiting for partner"}
                   </p>
                 </div>
                 <div className="shrink-0">
-                  {pairing.status === "completed" ? (
+                  {deleted ? (
+                    <span className="text-[12px] text-solid-text-tertiary bg-solid-bg border border-solid-border rounded-full px-3 py-1">
+                      No longer active
+                    </span>
+                  ) : pairing.status === "completed" ? (
                     <span className="text-[13px] font-medium text-solid-accent">
                       View Results →
                     </span>
@@ -120,8 +121,32 @@ export default async function PairingsPage() {
                   )}
                 </div>
               </div>
-            </Link>
-          ))}
+            );
+            return deleted ? (
+              <div
+                key={pairing.id}
+                className="block bg-solid-surface border border-solid-border rounded-xl p-5 opacity-70 cursor-default"
+              >
+                {card}
+              </div>
+            ) : (
+              <Link
+                key={pairing.id}
+                href={
+                  pairing.status === "completed"
+                    ? `/dashboard/pairings/${pairing.id}`
+                    : "#"
+                }
+                className={`block bg-solid-surface border border-solid-border rounded-xl p-5 transition-colors ${
+                  pairing.status === "completed"
+                    ? "hover:border-solid-accent/30 cursor-pointer"
+                    : "opacity-70 cursor-default"
+                }`}
+              >
+                {card}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
