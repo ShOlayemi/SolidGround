@@ -82,6 +82,21 @@ export async function respondToConnectionRequest(requestId: string, accept: bool
   const a = await auth(); if (!a) return { success: false, error: "Not authenticated." };
   const service = await createServiceClient(); const { data: req } = await service.from("connection_requests").select("id,from_user_id,to_user_id,status,relationship_type").eq("id", requestId).eq("to_user_id", a.userId).single();
   if (!req || req.status !== "pending") return { success: false, error: "Request not found or already handled." };
+  // Blocked-user enforcement (Sprint 8 §7, migration 036). The service
+  // client bypasses RLS, so the action must enforce blocking itself. A
+  // block in EITHER direction prevents the response — a blocked pair
+  // must not complete a connection through the accept path (and gets no
+  // further access, so decline is refused too). Respond with the same
+  // generic copy as an unavailable request so the caller can never
+  // learn a block exists. Fail closed on check error.
+  let isBlocked: boolean;
+  try {
+    isBlocked = await usersAreBlocked(service, a.userId, req.from_user_id);
+  } catch (err) {
+    console.error("[connections] Block check error:", err);
+    return { success: false, error: "Could not update request." };
+  }
+  if (isBlocked) return { success: false, error: "This request is no longer available." };
   const status = accept ? "accepted" : "declined"; const { error } = await service.from("connection_requests").update({ status }).eq("id", requestId); if (error) return { success: false, error: error.message };
   if (!accept) return { success: true };
   const relationshipType: RelationshipType = (req.relationship_type === "platonic" ? "platonic" : "romantic");

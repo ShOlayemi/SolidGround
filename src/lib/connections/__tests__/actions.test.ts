@@ -122,6 +122,42 @@ describe("connection actions", () => {
     expect(result.unreadCount).toBe(1);
   });
 
+  it("respondToConnectionRequest refuses when the recipient has blocked the sender", async () => {
+    mockSupabase.setSession(USER_B);
+    seedRequest();
+    seedBlock(USER_B, USER_A); // B (recipient/responder) blocked A (sender)
+
+    const result = await respondToConnectionRequest(REQUEST_ID, true);
+
+    expect(result).toEqual({ success: false, error: "This request is no longer available." });
+    expect(mockSupabase.tables.connection_requests[0].status).toBe("pending");
+    expect(mockSupabase.tables.pairings ?? []).toHaveLength(0);
+  });
+
+  it("respondToConnectionRequest refuses when the sender has blocked the recipient", async () => {
+    mockSupabase.setSession(USER_B);
+    seedRequest();
+    seedBlock(USER_A, USER_B); // A (sender) blocked B (recipient/responder)
+
+    const result = await respondToConnectionRequest(REQUEST_ID, true);
+
+    expect(result).toEqual({ success: false, error: "This request is no longer available." });
+    expect(mockSupabase.tables.connection_requests[0].status).toBe("pending");
+    expect(mockSupabase.tables.pairings ?? []).toHaveLength(0);
+  });
+
+  it("respondToConnectionRequest fails closed when the block check errors", async () => {
+    mockSupabase.setSession(USER_B);
+    seedRequest();
+    mockSupabase.failTable("blocked_users", "db exploded");
+
+    const result = await respondToConnectionRequest(REQUEST_ID, true);
+
+    expect(result).toEqual({ success: false, error: "Could not update request." });
+    expect(mockSupabase.tables.connection_requests[0].status).toBe("pending");
+    expect(mockSupabase.tables.pairings ?? []).toHaveLength(0);
+  });
+
   it("respondToConnectionRequest with accept creates pairing and updates status", async () => {
     mockSupabase.setSession(USER_B);
     seedRequest();
