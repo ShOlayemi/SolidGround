@@ -19,6 +19,7 @@ import { UpgradePrompt } from "@/components/billing/UpgradePrompt";
 import { DownloadPdfButton } from "@/components/dashboard/DownloadPdfButton";
 import { RefreshReportButton } from "@/components/dashboard/RefreshReportButton";
 import { partnerLabel } from "@/lib/mode";
+import { isPartnerDeletedPairing } from "@/lib/pairings/pairingDeleted";
 
 interface ComparisonPageProps {
   params: Promise<{ id: string }>;
@@ -79,6 +80,31 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
   const { data: { user } } = await supabase.auth.getUser();
   const isInviter = user?.id === pairing.inviter_user_id;
   const inviteCode = pairing.invite_code;
+
+  // Sprint 8 live-test fix: the other participant deleted their account.
+  // pairings.invitee_user_id is ON DELETE SET NULL (migration 008), so a
+  // completed/accepted pairing survives the deletion with invitee_user_id
+  // null and its comparison report survives with it. Never render that
+  // leftover row as an active Alignment Match™ (the report embeds the
+  // deleted user's data) — show the truthful defunct state instead.
+  if (isPartnerDeletedPairing(pairing)) {
+    return (
+      <div className="max-w-[640px] mx-auto py-20 px-4 text-center">
+        <h1 className="text-[24px] font-semibold text-solid-text mb-3">
+          Connection no longer active
+        </h1>
+        <p className="text-[15px] text-solid-text-secondary mb-6">
+          Your partner deleted their account, so this Alignment Match™ is no
+          longer available.
+        </p>
+        <Link href="/dashboard/pairings">
+          <Button variant="filled" size="md">
+            ← Back to Pairings
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
   if (pairing.status !== "completed" || !pairing.alignment_results) {
     return (
