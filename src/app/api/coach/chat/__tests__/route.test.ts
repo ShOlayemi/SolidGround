@@ -11,7 +11,10 @@
 //         composed user message contains the transcript + compact
 //         Blueprint context and is history-capped server-side; a
 //         manipulation request is refused and the refusal is returned.
-//   500 — OPENAI_API_KEY unset; OpenAI failure; empty completion.
+//   200 — mock fallback: OPENAI_API_KEY unset OR NEXT_PUBLIC_AI_MODE=
+//         mock → deterministic, safety-respecting mock reply (no
+//         OpenAI client is created).
+//   500 — OpenAI failure (live mode); empty completion.
 // The auth helper and the OpenAI client are mocked — no network.
 // Runner: `bun test` (the repo's suite; vitest-style imports).
 // ──────────────────────────────────────────────────────────────
@@ -131,6 +134,7 @@ beforeEach(() => {
   capturedParams = [];
   fakeMode = "ok";
   process.env.OPENAI_API_KEY = "test-key";
+  delete process.env.NEXT_PUBLIC_AI_MODE;
 });
 
 describe("POST /api/coach/chat", () => {
@@ -318,15 +322,37 @@ describe("POST /api/coach/chat", () => {
     expect(system).toMatch(/friend\/friendship language/);
   });
 
-  it("returns 500 with a plain body when OPENAI_API_KEY is unset", async () => {
+  it("returns 200 with a deterministic mock reply when OPENAI_API_KEY is unset", async () => {
     delete process.env.OPENAI_API_KEY;
     const res = await post(validBody());
-    expect(res.status).toBe(500);
-    const body = (await res.json()) as { error?: string };
-    expect(typeof body.error).toBe("string");
-    expect(body.error).not.toContain("OPENAI_API_KEY");
-    expect(body.error).not.toContain("test-key");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { content?: string };
+    expect(typeof body.content).toBe("string");
+    expect(body.content!.length).toBeGreaterThan(20);
+
+    // Message-derived, not a canned constant: echoes a word the user used.
+    expect(body.content).toContain("money");
+    // No OpenAI client was created (capturedParams stays empty).
     expect(capturedParams).toHaveLength(0);
+    // Deterministic: the same input produces the same reply.
+    const res2 = await post(validBody());
+    const body2 = (await res2.json()) as { content?: string };
+    expect(body2.content).toBe(body.content);
+  });
+
+  it("returns 200 with a deterministic mock reply when NEXT_PUBLIC_AI_MODE=mock (even with a key set)", async () => {
+    process.env.NEXT_PUBLIC_AI_MODE = "mock";
+    process.env.OPENAI_API_KEY = "test-key";
+    const res = await post(validBody());
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { content?: string };
+    expect(typeof body.content).toBe("string");
+    expect(body.content!.length).toBeGreaterThan(20);
+    expect(capturedParams).toHaveLength(0);
+
+    const res2 = await post(validBody());
+    const body2 = (await res2.json()) as { content?: string };
+    expect(body2.content).toBe(body.content);
   });
 
   it("returns 500 with a plain user-safe body when OpenAI fails", async () => {

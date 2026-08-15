@@ -43,26 +43,27 @@
 //     no decisions for the user; tentative decision-support framing;
 //     refusal of manipulation/coercion tactics; safety-first handling
 //     of threats/violence/abuse; no invented hotlines or service names.
-//   • KEY HANDLING — OpenAI key stays server-side: getOpenAI() reads
-//     process.env.OPENAI_API_KEY (throws → 500 if unset). The service-
-//     role key is never involved; only the caller's bearer token.
+//   • KEY HANDLING — OpenAI key stays server-side; the shared reply
+//     generator (src/lib/ai/coach-reply.ts) reads
+//     process.env.OPENAI_API_KEY. When the key is unset OR the provider
+//     mode is "mock" (NEXT_PUBLIC_AI_MODE=mock), the route returns a
+//     deterministic, safety-respecting mock reply (200) instead of
+//     erroring — consistent with the AI-insights MockProvider. The
+//     service-role key is never involved; only the caller's bearer token.
 //   • NO CONTENT LOGGING — no audit row is written, and server logs
 //     carry only the failure kind, never conversation content.
 //   • TIME BOUND — the OpenAI call is capped server-side (the mobile
 //     client aborts at 15 s; this must beat that).
 // ──────────────────────────────────────────────────────────────
-import type OpenAI from "openai";
 import {
   authenticateRequest,
   json,
   optionsResponse,
 } from "@/lib/pairings/mobile-api";
-import { getOpenAI } from "@/lib/ai/service";
+import { generateCoachReply } from "@/lib/ai/coach-reply";
 import {
   COACH_HISTORY_LIMIT,
   COACH_MESSAGE_MAX_LENGTH,
-  buildCoachSystemPrompt,
-  buildCoachUserMessage,
 } from "@/lib/ai/coach-prompt";
 import type {
   CoachChatHistoryItem,
@@ -73,12 +74,6 @@ import type {
 } from "@/lib/ai/coach-prompt";
 
 export const runtime = "nodejs";
-
-/** Server-side bound on the OpenAI call — the client aborts at 15 s. */
-const COACH_CALL_TIMEOUT_MS = 12_000;
-
-/** Max completion tokens for a coach reply (a few short paragraphs). */
-const COACH_MAX_TOKENS = 800;
 
 /** CORS preflight (shared helper — mirrors the pairing routes). */
 export async function OPTIONS() {
@@ -246,9 +241,10 @@ function parseCoachChatBody(body: unknown): ParseResult {
 
 /**
  * POST /api/coach/chat — one stateless coach turn:
- * authenticate → validate → compose prompt → OpenAI completion →
- * { content }. Any failure returns a 5xx with a plain user-safe body
- * (never a raw error, never a key name).
+ * authenticate → validate → shared reply generator (mock fallback or
+ * OpenAI completion) → { content }. Any live-path failure returns a
+ * 5xx with a plain user-safe body (never a raw error, never a key
+ * name).
  */
 export async function POST(request: Request) {
   // 1. Bearer-token authentication (shared helper — 401 style matches
@@ -269,52 +265,22 @@ export async function POST(request: Request) {
   }
   const input: CoachChatUserMessageInput = parsed.data;
 
-  // 3. OpenAI client — key lives server-side only. Unset key → 500
-  //    with a plain body (the client maps it to a friendly state).
-  let openai: OpenAI;
+  // 3. Generate the reply via the shared generator. When OPENAI_API_KEY
+  //    is unset OR the provider mode is "mock", it returns a
+  //    deterministic, safety-respecting mock reply (200) — the mock
+  //    path never touches the network and never throws. In live mode
+  //    the OpenAI call is time-bounded server-side (client aborts at
+  //    15 s); any failure maps to a plain 500.
   try {
-    openai = getOpenAI();
-  } catch {
-    console.error("[api/coach/chat] OPENAI_API_KEY is not configured.");
-    return json({ error: "The coaching service is not configured." }, 500);
-  }
-
-  // 4. Completion with a server-side time bound (client aborts at 15 s).
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), COACH_CALL_TIMEOUT_MS);
-  try {
-    const completion = await openai.chat.completions.create(
-      {
-        model: "gpt-4o-mini",
-        temperature: 0.3,
-        max_tokens: COACH_MAX_TOKENS,
-        messages: [
-          {
-            role: "system",
-            content: buildCoachSystemPrompt(input.blueprintContext?.relationshipMode),
-          },
-          { role: "user", content: buildCoachUserMessage(input) },
-        ],
-      },
-      { signal: controller.signal },
-    );
-
-    const content = completion.choices?.[0]?.message?.content;
-    if (!content || content.trim().length === 0) {
-      console.error("[api/coach/chat] OpenAI returned an empty completion.");
-      return json({ error: "The coaching service is temporarily unavailable. Please try again." }, 500);
-    }
-
-    // 5. Echo NOTHING beyond the coach reply.
+    const content = await generateCoachReply(input);
+    // 4. Echo NOTHING beyond the coach reply.
     return json({ content }, 200);
   } catch (err) {
     // Never log conversation content — only the failure kind.
     console.error(
-      "[api/coach/chat] OpenAI call failed:",
+      "[api/coach/chat] Coach reply failed:",
       err instanceof Error ? err.message : String(err),
     );
     return json({ error: "The coaching service is temporarily unavailable. Please try again." }, 500);
-  } finally {
-    clearTimeout(timer);
   }
 }
