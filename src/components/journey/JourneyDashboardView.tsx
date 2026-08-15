@@ -1,15 +1,16 @@
 import type { JourneyDashboard } from "@/lib/journey/types";
 import { JourneyProgressSummary } from "./JourneyProgressSummary";
 import { JourneyTopicList } from "./JourneyTopicList";
-import { JourneyComingSoonSection } from "./JourneyComingSoonSection";
+import { JourneyArtifactSection } from "./JourneyArtifactSection";
 
 /**
  * SolidGround AI — Journey dashboard (paired view).
  *
  * Server component composing the progress summary, the grouped topic list,
- * and the "coming next" placeholders from the getJourneyDashboard() payload.
- * No client interactivity on this page — every mutation lives on the topic
- * detail route, and server re-render on navigation keeps statuses fresh.
+ * and the goals/agreements/reflections entry cards from the
+ * getJourneyDashboard() payload. No client interactivity on this page —
+ * every mutation lives on the artifact/topic routes, and server re-render on
+ * navigation keeps statuses fresh.
  */
 export function JourneyDashboardView({ dashboard }: { dashboard: Extract<JourneyDashboard, { hasPairing: true }> }) {
   return (
@@ -28,7 +29,7 @@ export function JourneyDashboardView({ dashboard }: { dashboard: Extract<Journey
       </div>
 
       <div className="mt-10">
-        <JourneyComingSoonSection
+        <JourneyArtifactSection
           goals={dashboard.goals}
           agreements={dashboard.agreements}
           reflectionsCount={dashboard.reflections.length}

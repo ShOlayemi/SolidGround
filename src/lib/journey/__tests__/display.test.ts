@@ -6,7 +6,15 @@
 // already covered by actions.test.ts / sync.test.ts.
 // ──────────────────────────────────────────────────────────────
 import { describe, it, expect } from "vitest";
-import { groupTopicsByStatus, topicsRemaining } from "@/lib/journey/display";
+import {
+  AGREEMENT_STATUS_LABEL,
+  AGREEMENT_STATUS_ORDER,
+  GOAL_STATUS_LABEL,
+  GOAL_STATUS_ORDER,
+  domainLabel,
+  groupTopicsByStatus,
+  topicsRemaining,
+} from "@/lib/journey/display";
 import type { JourneyTopic } from "@/lib/journey/types";
 
 function topic(overrides: Partial<JourneyTopic> & { id: string; topic: string }): JourneyTopic {
@@ -44,5 +52,38 @@ describe("groupTopicsByStatus", () => {
     const { notStarted, discussed } = groupTopicsByStatus([]);
     expect(notStarted).toEqual([]);
     expect(discussed).toEqual([]);
+  });
+});
+
+describe("goal status vocabulary", () => {
+  it("labels every goal status in display order", () => {
+    expect(GOAL_STATUS_ORDER).toEqual(["not_started", "in_progress", "completed"]);
+    expect(GOAL_STATUS_ORDER.map((s) => GOAL_STATUS_LABEL[s])).toEqual([
+      "Not started",
+      "In progress",
+      "Completed",
+    ]);
+  });
+});
+
+describe("agreement status vocabulary", () => {
+  it("labels every agreement status in display order", () => {
+    expect(AGREEMENT_STATUS_ORDER).toEqual(["pending", "agreed"]);
+    expect(AGREEMENT_STATUS_ORDER.map((s) => AGREEMENT_STATUS_LABEL[s])).toEqual([
+      "Pending",
+      "Agreed",
+    ]);
+  });
+});
+
+describe("domainLabel", () => {
+  it("maps a category id to its canonical label", () => {
+    expect(domainLabel("money")).toBe("Money & Finances");
+    expect(domainLabel("communication")).toBe("Communication");
+  });
+  it("returns null for null / unknown domains", () => {
+    expect(domainLabel(null)).toBeNull();
+    expect(domainLabel(undefined)).toBeNull();
+    expect(domainLabel("not-a-category")).toBeNull();
   });
 });
