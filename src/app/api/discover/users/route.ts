@@ -34,6 +34,11 @@
 // with the caller and not self. `mode` optionally scopes pending-request
 // annotations to requests of that relationship type (romantic | platonic);
 // omitted = all.
+//
+// S10-f (Discover privacy opt-out, owner decision 2026-08-19 option b,
+// migration 037): users with profiles.discoverable = false are excluded
+// at the DB level (service-client filter) — the opt-out is enforced here,
+// never by the mobile client.
 // ──────────────────────────────────────────────────────────────
 import { createServiceClient } from "@/lib/supabase/server";
 import {
@@ -109,10 +114,15 @@ export async function GET(request: Request) {
   if (!eligible.length) return json({ users: [], hasMore: false }, 200);
 
   // 4. Profiles via the service client (own-row-only RLS requires it).
+  //    S10-f (Discover privacy opt-out, owner decision 2026-08-19 option b):
+  //    exclude users with discoverable = false AT THE DB LEVEL so opted-out
+  //    users never come back from browse (migration 037 added the column).
+  //    This filter runs on the service client, never client-side.
   const { data: profiles } = await service
     .from("profiles")
     .select("id,display_name,full_name,relationship_status,gender,age,avatar_url,bio")
-    .in("id", eligible);
+    .in("id", eligible)
+    .eq("discoverable", true);
 
   // 5. Pending requests between me and candidates (optionally mode-scoped).
   let reqQuery = service
