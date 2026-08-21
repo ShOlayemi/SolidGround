@@ -3,6 +3,7 @@ import { useState } from "react";
 import { signOut } from "@/lib/auth/actions";
 import { AIModeToggle } from "@/components/dev/AIModeToggle";
 import { AIDebugPanel } from "@/components/dev/AIDebugPanel";
+import { AIModeStatusIndicator } from "@/components/dev/AIModeStatusIndicator";
 
 export function SettingsClient({ name, email }: { name: string; email: string }) {
   const [notifications, setNotifications] = useState(true);
@@ -110,6 +111,7 @@ export function SettingsClient({ name, email }: { name: string; email: string })
           <h2 className="text-lg font-semibold text-text-primary">Developer</h2>
           <div className="mt-5 space-y-6">
             <AIModeToggle />
+            <AIModeStatusIndicator />
             <AIDebugPanel />
           </div>
         </section>
