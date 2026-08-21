@@ -20,6 +20,7 @@ import { DownloadPdfButton } from "@/components/dashboard/DownloadPdfButton";
 import { RefreshReportButton } from "@/components/dashboard/RefreshReportButton";
 import { partnerLabel } from "@/lib/mode";
 import { isPartnerDeletedPairing } from "@/lib/pairings/pairingDeleted";
+import { ReportUserButton } from "@/components/trust/ReportUserButton";
 
 interface ComparisonPageProps {
   params: Promise<{ id: string }>;
@@ -150,6 +151,10 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
   const currentUserName = isInviter
     ? pairing.inviter_name
     : (pairing.invitee_name ?? pairing.inviter_name);
+  // The user being reported is always the OTHER participant (the partner).
+  const reportedUserId = isInviter
+    ? (pairing.invitee_user_id ?? null)
+    : (pairing.inviter_user_id ?? null);
 
   // Determine whose results are whose: current user is either inviter or invitee
   // For display, we show "You" on the left and partner on the right
@@ -233,6 +238,11 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
 
       <div className="mb-10 flex justify-end">
         <RefreshReportButton pairingId={id} />
+      </div>
+
+      {/* ── Report ───────────────────────────────────────────── */}
+      <div className="mb-10 flex justify-end">
+        <ReportUserButton reportedUserId={reportedUserId} />
       </div>
 
       <section className="mb-10">
