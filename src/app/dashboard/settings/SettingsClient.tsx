@@ -62,13 +62,26 @@ export function SettingsClient({ name, email }: { name: string; email: string })
 
       <section className="mt-6 rounded-xl border border-card-border bg-card-bg p-6">
         <h2 className="text-lg font-semibold text-text-primary">Data &amp; Privacy</h2>
-        <div className="mt-5 flex flex-wrap gap-4 text-sm">
-          <a href="/privacy" className="font-medium text-accent-600">
-            Privacy policy →
-          </a>
-          <button disabled className="text-text-tertiary">
-            Download my data (Coming soon)
-          </button>
+        <div className="mt-5 flex flex-col gap-3 text-sm">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <a href="/dashboard/settings/privacy" className="font-medium text-accent-600">
+              Privacy Center →
+            </a>
+            <a href="/dashboard/settings/blocked" className="font-medium text-accent-600">
+              Blocked Users →
+            </a>
+            <a href="/privacy" className="font-medium text-accent-600">
+              Privacy policy →
+            </a>
+            <button disabled className="text-text-tertiary">
+              Download my data (Coming soon)
+            </button>
+          </div>
+          <p className="text-[13px] leading-relaxed text-text-tertiary">
+            The Privacy Center lays out what SolidGround stores and who can
+            see it. Blocking someone stops them from inviting, messaging, or
+            connecting with you.
+          </p>
         </div>
       </section>
 
