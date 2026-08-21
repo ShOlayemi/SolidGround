@@ -58,17 +58,17 @@ AI-powered insights are temporarily unavailable. The summary above is based on y
     growthOpportunities: [
       `${lowCategory.label} shows room for reflection and growth (${lowCategory.score}/100)`,
       "Consider exploring how your responses vary across different relationship contexts",
-      "${person[0].toUpperCase() + person.slice(1)} comparison (Alignment Match™) can reveal blind spots you may not see alone",
+      `${person[0].toUpperCase() + person.slice(1)} comparison (Alignment Match™) can reveal blind spots you may not see alone`,
     ],
     reflectionQuestions: [
       `What surprised you most about your ${topCategory.label} results?`,
       `How do your ${lowCategory.label} responses reflect your past ${noun} experiences?`,
-      "Which category do you think a ${person} would rate you differently on?",
+      `Which category do you think a ${person} would rate you differently on?`,
       "What's one pattern you noticed across all your responses?",
       "If you retook this in a year, which scores would you most want to see change?",
     ],
     communicationRecommendations: [
-      "Use 'I feel' statements when discussing sensitive topics with a ${person}",
+      `Use 'I feel' statements when discussing sensitive topics with a ${person}`,
       "Practice active listening by summarizing what your partner said before responding",
       "Schedule regular check-ins rather than waiting for issues to surface",
     ],
