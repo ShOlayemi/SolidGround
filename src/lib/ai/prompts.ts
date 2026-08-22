@@ -156,7 +156,7 @@ Analyze the data above and return a JSON object with the following shape. Every 
   "growthOpportunities": ["3 growth areas based on the actual low-scoring areas above. Frame positively as opportunities for self-reflection."],
   "reflectionQuestions": ["5 thought-provoking questions that help the user reflect on their specific results. Each should reference a specific category or pattern visible in their data."],
   "communicationRecommendations": ["3 communication tips that relate to the user's specific communication score and patterns in their data."],
-  "connectionReadiness": {
+  "relationshipReadiness": {
     "level": "High|Moderate|Developing",
     "summary": "1-2 sentence summary based on the score bands: 70–100 Strong readiness, 45–69 Developing readiness, 0–44 Needs Attention.",
     "strengths": ["2 readiness strengths drawn from the data"],
