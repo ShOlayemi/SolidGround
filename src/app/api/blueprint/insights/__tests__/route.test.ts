@@ -14,7 +14,7 @@
 // OpenAI, no database. Runner: `bun test` (the repo's suite; vitest-style).
 // ──────────────────────────────────────────────────────────────
 import { mock } from "bun:test";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextResponse } from "next/server";
 
 // ── Fakes ─────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ mock.module("@/lib/pairings/mobile-api", () => ({
   authenticateRequest: async () => authResult,
 }));
 
-const mockGetOrGenerateInsights = mock((sessionId: string, client?: unknown, userId?: string) => {
+const mockGetOrGenerateInsights = vi.fn((sessionId: string, client?: unknown, userId?: string) => {
   if (genMode === "cached") {
     return { success: true, cached: true, insights: { ...INSIGHTS } };
   }
