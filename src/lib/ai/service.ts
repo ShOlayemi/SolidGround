@@ -7,6 +7,7 @@
 // ──────────────────────────────────────────────────────────────
 
 import OpenAI from "openai";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BlueprintResults } from "@/lib/scoring/types";
 import type { AIInsights, RelationshipType } from "@/types";
 import { createClient } from "@/lib/supabase/server";
@@ -171,21 +172,38 @@ export async function generateInsights(
  * If not found, generate new insights, store, and return.
  *
  * This is the caching layer that prevents duplicate API costs.
+ *
+ * Backward-compatible, ADD-only signature:
+ *   getOrGenerateInsights(sessionId)
+ *     → cookie-authenticated createClient() + its session (unchanged web path)
+ *   getOrGenerateInsights(sessionId, client, userId)
+ *     → the caller's token-bound client + an already-verified userId (the
+ *       mobile bearer-token route), so RLS still applies to every query.
  */
 export async function getOrGenerateInsights(
   sessionId: string,
+  client?: SupabaseClient,
+  knownUserId?: string,
 ): Promise<{ success: boolean; insights?: AIInsights; error?: string; cached?: boolean }> {
   try {
-    const supabase = await createClient();
+    // Backward-compatible: with no extra args this uses the cookie-authenticated
+    // createClient() and its session (the web app's historical path). The mobile
+    // bearer-token route passes a token-bound client + the already-verified userId
+    // (from authenticateRequest), so RLS applies exactly as for the web app.
+    const supabase = client ?? (await createClient());
 
-    // Auth check
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
-      return { success: false, error: "Not authenticated." };
+    // Auth check — userId derives from the authenticated session unless the
+    // caller has already verified it (e.g. the bearer-token API route).
+    let userId = knownUserId;
+    if (!userId) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        return { success: false, error: "Not authenticated." };
+      }
+      userId = session.user.id;
     }
-    const userId = session.user.id;
 
     // ── CACHE CHECK ──────────────────────────────────────────
     const { data: cachedRow, error: cacheError } = await supabase
