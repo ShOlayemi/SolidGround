@@ -165,8 +165,10 @@ export async function createInvite(
     return { success: false, error: "No blueprint results found. Please compute your results first." };
   }
 
-  // Generate unique invite code
-  const inviteCode = crypto.randomUUID().slice(0, 8);
+  // Generate a unique invite code. Use the full 128-bit random UUID (36
+  // chars) as the bearer token for the invite-accept flow — truncating to
+  // 8 hex chars would leave only 32 bits of entropy, which is enumerable.
+  const inviteCode = crypto.randomUUID();
 
   // Insert pairing with inviter's results stored in alignment_results
   // so acceptInvite can read them without cross-user blueprint_results RLS issues.

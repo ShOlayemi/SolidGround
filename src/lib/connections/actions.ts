@@ -102,7 +102,7 @@ export async function respondToConnectionRequest(requestId: string, accept: bool
   const relationshipType: RelationshipType = (req.relationship_type === "platonic" ? "platonic" : "romantic");
   const [fromResults, toResults] = await Promise.all([latestResults(service, req.from_user_id), latestResults(service, req.to_user_id)]); if (!fromResults || !toResults) return { success: false, error: "Both users must have completed their Blueprint." };
   const alignmentResults = computeAlignment(fromResults, toResults);
-  const { data: pairing, error: pairingError } = await service.from("pairings").insert({ invite_code: crypto.randomUUID().slice(0, 8), inviter_user_id: req.from_user_id, inviter_session_id: fromResults.sessionId, invitee_user_id: req.to_user_id, invitee_session_id: toResults.sessionId, status: "completed", relationship_type: relationshipType, alignment_results: alignmentResults }).select("id").single();
+  const { data: pairing, error: pairingError } = await service.from("pairings").insert({ invite_code: crypto.randomUUID(), inviter_user_id: req.from_user_id, inviter_session_id: fromResults.sessionId, invitee_user_id: req.to_user_id, invitee_session_id: toResults.sessionId, status: "completed", relationship_type: relationshipType, alignment_results: alignmentResults }).select("id").single();
   if (pairingError || !pairing) return { success: false, error: pairingError?.message ?? "Failed to create pairing." };
 
   // Generate the report after pairing creation; a report failure must not undo acceptance.

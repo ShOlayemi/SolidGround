@@ -209,7 +209,7 @@ export async function POST(request: Request) {
   const { data: pairing, error: pairingError } = await service
     .from("pairings")
     .insert({
-      invite_code: crypto.randomUUID().slice(0, 8),
+      invite_code: crypto.randomUUID(),
       inviter_user_id: req.from_user_id,
       inviter_session_id: fromResults!.sessionId,
       invitee_user_id: req.to_user_id,
