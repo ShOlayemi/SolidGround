@@ -219,7 +219,9 @@ export async function makeAdmin(): Promise<{ success: boolean; error?: string }>
       return { success: false, error: "Admin already exists. Only an existing admin can promote new admins." };
     }
 
-    const { error } = await supabase
+    // Write the role via the service client (migration 039 blocks role
+    // changes from anon/authenticated clients; only service_role may promote).
+    const { error } = await serviceClient
       .from("profiles")
       .update({ role: "admin" })
       .eq("id", user.id);
