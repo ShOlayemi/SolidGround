@@ -44,6 +44,13 @@ export async function discoverUsers(query = "", page = 0): Promise<Result<{ user
 
 export async function sendConnectionRequest(toUserId: string, relationshipType: RelationshipType = "romantic"): Promise<Result<{}>> {
   const a = await auth(); if (!a) return { success: false, error: "Not authenticated." }; if (toUserId === a.userId) return { success: false, error: "You cannot connect with yourself." };
+  // Strip characters with special meaning in PostgREST `.or()` filter syntax
+  // (`%,.()*!`) from the caller-supplied target id before it is interpolated
+  // into raw filter strings (usersAreBlocked, duplicate pre-check). The value
+  // is expected to be a UUID, which only contains hex + dashes — real
+  // requests pass through untouched; crafted values cannot alter query
+  // semantics. The DB's uuid-type column rejects anything that survives.
+  const safeTargetId = toUserId.replace(/[%,.()*!]/g, "");
   const service = await createServiceClient();
   // Blocked-user enforcement (Sprint 8 §7, migration 036). The service
   // client bypasses RLS, so the action must enforce blocking itself. A
@@ -52,19 +59,19 @@ export async function sendConnectionRequest(toUserId: string, relationshipType: 
   // learn a block exists. Fail closed on check error.
   let isBlocked: boolean;
   try {
-    isBlocked = await usersAreBlocked(service, a.userId, toUserId);
+    isBlocked = await usersAreBlocked(service, a.userId, safeTargetId);
   } catch (err) {
     console.error("[connections] Block check error:", err);
     return { success: false, error: "Could not send request." };
   }
   if (isBlocked) return { success: false, error: "This user is no longer available." };
-  const { data: existing } = await service.from("connection_requests").select("id,status").or(`and(from_user_id.eq.${a.userId},to_user_id.eq.${toUserId}),and(from_user_id.eq.${toUserId},to_user_id.eq.${a.userId})`).eq("status", "pending").maybeSingle();
+  const { data: existing } = await service.from("connection_requests").select("id,status").or(`and(from_user_id.eq.${a.userId},to_user_id.eq.${safeTargetId}),and(from_user_id.eq.${safeTargetId},to_user_id.eq.${a.userId})`).eq("status", "pending").maybeSingle();
   if (existing) return { success: false, error: "A request is already pending." };
-  const { error } = await service.from("connection_requests").insert({ from_user_id: a.userId, to_user_id: toUserId, relationship_type: relationshipType });
+  const { error } = await service.from("connection_requests").insert({ from_user_id: a.userId, to_user_id: safeTargetId, relationship_type: relationshipType });
   if (error) return { success: false, error: error.message };
   const { data: profile } = await service.from("profiles").select("display_name,full_name").eq("id", a.userId).maybeSingle();
   const name = profile?.display_name ?? profile?.full_name ?? "Someone";
-  await createNotification(toUserId, "connection_request", "New connection request", `${name} would like to connect with you.`, { from_user_id: a.userId, href: "/dashboard/requests" });
+  await createNotification(safeTargetId, "connection_request", "New connection request", `${name} would like to connect with you.`, { from_user_id: a.userId, href: "/dashboard/requests" });
   return { success: true };
 }
 
