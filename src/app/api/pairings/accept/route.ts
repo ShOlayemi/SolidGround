@@ -20,7 +20,7 @@
 // MOBILE CONSUMER CONTRACT:
 //   POST /api/pairings/accept
 //   Authorization: Bearer <supabase access token>
-//   Body: { "inviteCode": "8-char-code" }
+//   Body: { "inviteCode": "36-char-uuid" }
 //   200 { "success": true, "pairingId": "uuid" }
 //   400 { "error": "..." }  bad body / invite no longer available /
 //                           expired / own invite / no completed blueprint
