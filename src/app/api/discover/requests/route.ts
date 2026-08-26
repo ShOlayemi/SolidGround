@@ -110,6 +110,13 @@ export async function POST(request: Request) {
     return json({ error: "toUserId is required." }, 400);
   }
   const target = toUserId.trim();
+  // Reject non-UUID targets outright: `target` is interpolated into a raw
+  // PostgREST `.or()` filter string below (and passed to usersAreBlocked),
+  // where `%,.()*!` carry syntax meaning. The consumer contract says uuid;
+  // strict format validation here prevents filter-string injection.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target)) {
+    return json({ error: "toUserId must be a valid UUID." }, 400);
+  }
   if (
     relationshipType !== undefined &&
     relationshipType !== "romantic" &&

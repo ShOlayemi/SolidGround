@@ -53,6 +53,21 @@ export async function getAdminStats(): Promise<AdminStats> {
 
 // ── getUsers ──────────────────────────────────────────────────
 
+/**
+ * Sanitize a user-supplied name-search term before it is interpolated into a
+ * PostgREST `.or()` filter string. Unlike `eq`/`ilike` value arguments (which
+ * the Supabase client URL-escapes), `.or()` builds a raw filter string where
+ * `%` (wildcard), `,` (clause separator), `.` (operator delimiter) and
+ * `( ) * !` (operators) all carry syntax meaning. A crafted term could
+ * otherwise alter query semantics (e.g. `%` matching everything, or a comma
+ * injecting an extra clause). None of these characters occur in real names,
+ * so we strip them and cap the length (100) — a longer search is nonsense
+ * for a name field.
+ */
+export function sanitizeUserSearch(search: string): string {
+  return search.replace(/[%,.()*!]/g, "").slice(0, 100).trim();
+}
+
 export async function getUsers(params: {
   search?: string;
   role?: string;
@@ -71,7 +86,10 @@ export async function getUsers(params: {
     query = query.eq("role", role);
   }
   if (search) {
-    query = query.or(`display_name.ilike.%${search}%,full_name.ilike.%${search}%`);
+    const sanitized = sanitizeUserSearch(search);
+    if (sanitized) {
+      query = query.or(`display_name.ilike.%${sanitized}%,full_name.ilike.%${sanitized}%`);
+    }
   }
 
   const { data: profiles, count, error } = await query
