@@ -701,11 +701,13 @@ export async function sendMessage(
     return { success: false, error: "Message content is required." };
   }
 
-  // Verify user is a partner
+  // Verify user is a partner. Capture the pairing so we can notify the other
+  // partner (Expo Push step — new_message).
   const partnerCheck = await verifyPartner(supabase, pairingId, userId);
   if (!partnerCheck.valid) {
     return { success: false, error: "You are not a partner in this pairing." };
   }
+  const pairing = partnerCheck.pairing;
 
   const { data: message, error } = await supabase
     .from("pairing_messages")
@@ -720,6 +722,39 @@ export async function sendMessage(
   if (error) {
     console.error("Error sending message:", error);
     return { success: false, error: "Failed to send message." };
+  }
+
+  // NEW (Expo Push step 1): create an in-app `new_message` notification for
+  // the OTHER partner only (never self). The createNotification helper ALSO
+  // fires the push for the same event, so a tap deep-links to the chat.
+  // Fire-and-forget — a notification/push failure must never break the send.
+  if (pairing) {
+    const recipient =
+      userId === pairing.inviter_user_id
+        ? pairing.invitee_user_id
+        : pairing.inviter_user_id;
+    if (recipient && recipient !== userId) {
+      try {
+        const serviceForName = await createServiceClient();
+        const { data: senderProfile } = await serviceForName
+          .from("profiles")
+          .select("display_name, full_name")
+          .eq("id", userId)
+          .maybeSingle();
+        const senderName =
+          senderProfile?.display_name ?? senderProfile?.full_name ?? "Your partner";
+        await createNotification(
+          recipient,
+          "new_message",
+          "New message",
+          `${senderName} sent you a message.`,
+          { pairing_id: pairingId, from_user_id: userId, href: `/dashboard/pairings/${pairingId}` },
+        );
+      } catch (err) {
+        // Non-fatal: the message was already saved; the send must not fail.
+        console.error("[pairings] new_message notification error:", err);
+      }
+    }
   }
 
   return { success: true, messageId: message.id };

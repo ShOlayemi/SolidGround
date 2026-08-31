@@ -2,12 +2,13 @@
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { sendPushForUser } from "@/lib/notifications/push";
 
-export type NotificationType = "partner_invite" | "invite_accepted" | "connection_request" | "connection_accepted" | "assessment_complete" | "subscription" | "system";
+export type NotificationType = "partner_invite" | "invite_accepted" | "connection_request" | "connection_accepted" | "assessment_complete" | "new_message" | "subscription" | "system";
 export type Notification = { id: string; user_id: string; type: NotificationType; title: string; message: string; data: Record<string, unknown> | null; read: boolean; created_at: string };
 export type NotificationPreferences = { email: Record<string, boolean>; in_app: Record<string, boolean> };
 
-const TYPES: NotificationType[] = ["partner_invite", "invite_accepted", "connection_request", "connection_accepted", "assessment_complete", "subscription", "system"];
+const TYPES: NotificationType[] = ["partner_invite", "invite_accepted", "connection_request", "connection_accepted", "assessment_complete", "new_message", "subscription", "system"];
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   email: Object.fromEntries(TYPES.map((type) => [type, true])),
   in_app: Object.fromEntries(TYPES.map((type) => [type, true])),
@@ -51,6 +52,18 @@ export async function createNotification(userId: string, type: NotificationType,
   const { data: prefs } = await auth.supabase.from("profiles").select("notification_preferences").eq("id", userId).maybeSingle();
   const inApp = (prefs?.notification_preferences as Partial<NotificationPreferences> | null)?.in_app;
   if (inApp && inApp[type] === false) return { success: true };
+  // Fire-and-forget push (Expo Push step). Uses a SERVICE client so any
+  // verified recipient's token/preferences can be read regardless of which
+  // client initiated the event. Never awaited — a push failure must never
+  // break the source action; sendPushForUser swallows all errors anyway.
+  const firePush = async () => {
+    try {
+      const pushService = await createServiceClient();
+      void sendPushForUser(pushService, userId, { type, title, body: message, data: data ?? undefined });
+    } catch (err) {
+      console.error("[notifications] push dispatch error:", err);
+    }
+  };
   if (userId !== auth.userId) {
     // Cross-user notification: use the SERVICE client, never the caller's
     // session client. Migration 036 (F2) revokes EXECUTE on
@@ -61,10 +74,14 @@ export async function createNotification(userId: string, type: NotificationType,
     // still works for the service role.
     const service = await createServiceClient();
     const { data: notificationId, error } = await service.rpc("create_notification_for_user", { target_user_id: userId, notification_type: type, notification_title: title, notification_message: message, notification_data: data ?? null });
-    return error ? { success: false, error: error.message } : { success: true, ...(notificationId ? { notification: { id: notificationId } as Notification } : {}) };
+    if (error) return { success: false, error: error.message };
+    await firePush();
+    return { success: true, ...(notificationId ? { notification: { id: notificationId } as Notification } : {}) };
   }
   const { data: notification, error } = await auth.supabase.from("notifications").insert({ user_id: userId, type, title, message, data: data ?? null }).select("id, user_id, type, title, message, data, read, created_at").single();
-  return error ? { success: false, error: error.message } : { success: true, notification: notification as Notification };
+  if (error) return { success: false, error: error.message };
+  await firePush();
+  return { success: true, notification: notification as Notification };
 }
 
 export async function getNotificationPreferences(userId: string): Promise<{ success: boolean; preferences: NotificationPreferences; error?: string }> {
